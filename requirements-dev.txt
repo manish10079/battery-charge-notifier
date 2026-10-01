@@ -1,0 +1,6 @@
+# BatteryLimit development / test / packaging dependencies.
+-r requirements.txt
+
+pytest>=8.0
+pytest-qt>=4.4
+pyinstaller>=6.6

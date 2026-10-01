@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+
+# Test and coverage artefacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# PyInstaller
+*.manifest
+
+# Editors and operating systems
+.idea/
+.vscode/
+Thumbs.db
+desktop.ini
+
+# Tooling state
+.monkeycode/
+.ohmyagent/
