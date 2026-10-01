@@ -133,14 +133,14 @@ class TestUpperWarningAcceptance:
         first = controller.notifier.window
         assert first is not None
         assert first.isVisible()
-        assert "95%" in first.findChild(QLabel, "percent").text()
+        assert "95%" in first.findChild(QLabel, "detail").text()
         assert first.findChild(QLabel, "headline").text() == "Unplug the charger"
 
         # A second warning must update the same window, not stack a new one.
         controller.notifier.present_test_warning(WarningKind.LOWER, 12)
         assert controller.notifier.window is first
         assert first.findChild(QLabel, "headline").text() == "Plug in the charger"
-        assert "12%" in first.findChild(QLabel, "percent").text()
+        assert "12%" in first.findChild(QLabel, "detail").text()
 
     def test_lower_warning_when_running_on_battery(self, qtbot, build_app) -> None:
         controller, _manager, _service = build_app(

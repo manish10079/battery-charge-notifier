@@ -1,8 +1,8 @@
-"""A themed push button.
+"""A themed push button following Fluent 32px control metrics.
 
-All colours come from :mod:`battery_charge_notifier.colors`; the widget never hardcodes a
-value. The ``ACCENT`` role re-tints itself from the warning action, so the
-popup's accent colour and its primary button always agree.
+All colours come from :mod:`battery_charge_notifier.colors`. The ``ACCENT`` role
+re-tints itself from the warning action so the popup's accent and its primary
+button always agree.
 """
 
 from __future__ import annotations
@@ -18,18 +18,18 @@ from .. import colors
 class ButtonRole(StrEnum):
     """Visual weight of a button."""
 
-    #: Filled with the neutral primary accent.
+    #: Filled with the primary accent (Close, primary actions).
     PRIMARY = "primary"
-    #: Filled with the warning's accent colour; needs :meth:`ActionButton.set_action`.
+    #: Filled with the warning's status accent; needs :meth:`ActionButton.set_action`.
     ACCENT = "accent"
-    #: Filled with the surface container colour.
+    #: Neutral fill with a 1px control stroke (Settings, standard actions).
     NEUTRAL = "neutral"
-    #: Transparent with an outline.
+    #: Transparent, no border (Dismiss, Restore defaults).
     OUTLINE = "outline"
 
 
 class ActionButton(QPushButton):
-    """A push button styled from the design tokens."""
+    """A push button styled from the Fluent design tokens."""
 
     def __init__(
         self,
@@ -48,17 +48,12 @@ class ActionButton(QPushButton):
         self._role = role
         self._action = "unplug"
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setMinimumHeight(38)
-        self.setMinimumWidth(96)
+        self.setMinimumHeight(32)
+        self.setMinimumWidth(80)
         self._apply_style()
 
-    # -- configuration -----------------------------------------------------
     def set_role(self, role: ButtonRole) -> None:
-        """Change the visual weight.
-
-        Args:
-            role: The new role.
-        """
+        """Change the visual weight."""
         self._role = role
         self._apply_style()
 
@@ -77,24 +72,20 @@ class ActionButton(QPushButton):
         if self._role is ButtonRole.ACCENT:
             self._apply_style()
 
-    # -- internals ---------------------------------------------------------
     def _apply_style(self) -> None:
         """Rebuild the style sheet from the design tokens."""
-        background, hover, pressed, text = self._palette()
-        border = "none"
-        if self._role is ButtonRole.OUTLINE:
-            border = f"1px solid {colors.OUTLINE_STRONG}"
-
+        background, hover, pressed, text, border = self._palette()
         self.setStyleSheet(
             f"""
             QPushButton {{
                 background-color: {background};
                 color: {text};
                 border: {border};
-                border-radius: 10px;
-                padding: 9px 18px;
-                font-size: 10.5pt;
+                border-radius: 4px;
+                padding: 0px 12px;
+                font-size: 13px;
                 font-weight: 600;
+                min-height: 32px;
             }}
             QPushButton:hover {{
                 background-color: {hover};
@@ -104,38 +95,47 @@ class ActionButton(QPushButton):
             }}
             QPushButton:focus {{
                 outline: none;
+                border: 1px solid {colors.FOCUS_OUTER};
+            }}
+            QPushButton:disabled {{
+                background-color: {colors.CONTROL_FILL_DISABLED};
+                color: {colors.TEXT_MUTED};
             }}
             """
         )
 
-    def _palette(self) -> tuple[str, str, str, str]:
-        """Return the ``(background, hover, pressed, text)`` tokens for the role."""
+    def _palette(self) -> tuple[str, str, str, str, str]:
+        """Return ``(background, hover, pressed, text, border)`` for the role."""
         if self._role is ButtonRole.PRIMARY:
             return (
                 colors.ACCENT_PRIMARY,
-                colors.ACCENT_PRIMARY,
+                colors.ACCENT_PRIMARY_DIM,
                 colors.ACCENT_PRIMARY_DIM,
                 colors.TEXT_ON_ACCENT,
+                "none",
             )
         if self._role is ButtonRole.ACCENT:
             return (
                 colors.accent_for(self._action),
-                colors.accent_for(self._action),
+                colors.accent_dim_for(self._action),
                 colors.accent_dim_for(self._action),
                 colors.TEXT_ON_ACCENT,
+                "none",
             )
         if self._role is ButtonRole.OUTLINE:
             return (
                 colors.TRANSPARENT,
-                colors.BUTTON_BACKGROUND_HOVER,
-                colors.BUTTON_BACKGROUND_PRESSED,
-                colors.BUTTON_TEXT,
+                colors.CONTROL_FILL_HOVER,
+                colors.CONTROL_FILL_PRESSED,
+                colors.TEXT_PRIMARY,
+                "none",
             )
         return (
             colors.BUTTON_BACKGROUND,
             colors.BUTTON_BACKGROUND_HOVER,
             colors.BUTTON_BACKGROUND_PRESSED,
             colors.BUTTON_TEXT,
+            f"1px solid {colors.OUTLINE_STRONG}",
         )
 
 

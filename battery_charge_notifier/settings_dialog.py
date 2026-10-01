@@ -1,13 +1,10 @@
-"""The settings dialog - a schema-driven View.
+"""The settings dialog - a schema-driven Fluent view.
 
-Every control is generated from :data:`~battery_charge_notifier.app_config.FIELDS`, so
-adding a setting never requires touching this file. The dialog contains no
-validation logic: it forwards edits to
-:class:`~battery_charge_notifier.viewmodels.settings.SettingsViewModel` and renders the
-per-field messages that come back.
+Every control is generated from :data:`~battery_charge_notifier.app_config.FIELDS`.
+There is no OK/Cancel pair: a valid edit is persisted as soon as it is made.
 
-There is no OK/Cancel pair: a valid edit is persisted - and therefore applied
-across the running application - as soon as it is made.
+The layout is two columns of single-row setting cards, matching the Windows 11
+settings pattern: label and help on the left, control on the right.
 """
 
 from __future__ import annotations
@@ -18,6 +15,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QSpinBox,
@@ -30,7 +28,9 @@ from .app_config import AppConfig, FieldSpec
 from .viewmodels.settings import SettingsViewModel
 from .widgets import ActionButton, ButtonRole
 
-DIALOG_WIDTH = 470
+DIALOG_WIDTH = 720
+COLUMN_GAP = 20
+CARD_RADIUS = 6
 
 #: Human-readable captions for the ``notification_mode`` values.
 CHOICE_LABELS: dict[str, dict[str, str]] = {
@@ -40,27 +40,33 @@ CHOICE_LABELS: dict[str, dict[str, str]] = {
     }
 }
 
+#: Fields in the left column (thresholds) then the right (timing / behaviour).
+LEFT_KEYS = ("upper_limit", "lower_limit", "minimum_gap", "rearm_gap")
+RIGHT_KEYS = (
+    "snooze_minutes",
+    "poll_interval_seconds",
+    "monitoring_enabled",
+    "launch_at_startup",
+    "notification_mode",
+)
+
 
 class SettingsDialog(QDialog):
     """A modeless, live-applying settings window."""
 
     def __init__(self, viewmodel: SettingsViewModel, parent: QWidget | None = None) -> None:
-        """Build the dialog from the schema.
-
-        Args:
-            viewmodel: Validates and persists edits.
-            parent: Optional Qt parent.
-        """
+        """Build the dialog from the schema."""
         super().__init__(parent)
         self._viewmodel = viewmodel
         self._loading = False
         self._editors: dict[str, QWidget] = {}
         self._errors: dict[str, QLabel] = {}
+        self._cards: dict[str, QFrame] = {}
 
         self.setWindowTitle("Battery Charge Notifier settings")
         self.setWindowIcon(resources.load_icon(resources.APP_ICON))
         self.setModal(False)
-        self.setMinimumWidth(DIALOG_WIDTH)
+        self.setFixedWidth(DIALOG_WIDTH)
         self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
 
         self._build_ui()
@@ -70,9 +76,8 @@ class SettingsDialog(QDialog):
         viewmodel.rejected.connect(self._on_rejected)
         viewmodel.reloaded.connect(self._load_values)
 
-    # -- construction ------------------------------------------------------
     def _build_ui(self) -> None:
-        """Create the header, the generated fields and the footer."""
+        """Create the header, the two-column cards and the footer."""
         title = QLabel("Battery Charge Notifier settings")
         title.setObjectName("title")
 
@@ -82,10 +87,25 @@ class SettingsDialog(QDialog):
         subtitle.setObjectName("subtitle")
         subtitle.setWordWrap(True)
 
-        fields_layout = QVBoxLayout()
-        fields_layout.setSpacing(16)
-        for spec in self._viewmodel.fields:
-            fields_layout.addWidget(self._build_field(spec))
+        specs = {spec.key: spec for spec in self._viewmodel.fields}
+        left = QVBoxLayout()
+        left.setSpacing(8)
+        right = QVBoxLayout()
+        right.setSpacing(8)
+        for key in LEFT_KEYS:
+            left.addWidget(self._build_card(specs[key]))
+        left.addStretch(1)
+        for key in RIGHT_KEYS:
+            right.addWidget(self._build_card(specs[key]))
+        right.addStretch(1)
+
+        columns = QGridLayout()
+        columns.setHorizontalSpacing(COLUMN_GAP)
+        columns.setVerticalSpacing(0)
+        columns.addLayout(left, 0, 0)
+        columns.addLayout(right, 0, 1)
+        columns.setColumnStretch(0, 1)
+        columns.setColumnStretch(1, 1)
 
         restore = ActionButton("Restore defaults", ButtonRole.OUTLINE)
         close = ActionButton("Close", ButtonRole.PRIMARY)
@@ -93,7 +113,7 @@ class SettingsDialog(QDialog):
         close.clicked.connect(self.accept)
 
         footer = QHBoxLayout()
-        footer.setSpacing(10)
+        footer.setSpacing(8)
         footer.addWidget(restore)
         footer.addStretch(1)
         footer.addWidget(close)
@@ -103,49 +123,60 @@ class SettingsDialog(QDialog):
         separator.setObjectName("separator")
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(26, 24, 26, 22)
-        layout.setSpacing(6)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(8)
         layout.addWidget(title)
         layout.addWidget(subtitle)
         layout.addSpacing(8)
-        layout.addLayout(fields_layout)
-        layout.addSpacing(10)
+        layout.addLayout(columns)
+        layout.addSpacing(8)
         layout.addWidget(separator)
-        layout.addSpacing(10)
+        layout.addSpacing(8)
         layout.addLayout(footer)
 
         self.setStyleSheet(self._style_sheet())
 
-    def _build_field(self, spec: FieldSpec) -> QWidget:
-        """Create the label/control/help/error block for one schema field."""
-        container = QWidget()
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(5)
+    def _build_card(self, spec: FieldSpec) -> QWidget:
+        """Create one single-row setting card: copy on the left, control on the right."""
+        card = QFrame()
+        card.setObjectName("settingCard")
+        self._cards[spec.key] = card
 
         label = QLabel(spec.label)
         label.setObjectName("fieldLabel")
 
+        help_label = QLabel(spec.help_text)
+        help_label.setObjectName("fieldHelp")
+        help_label.setWordWrap(True)
+
+        copy = QVBoxLayout()
+        copy.setContentsMargins(0, 0, 0, 0)
+        copy.setSpacing(2)
+        copy.addWidget(label)
+        if spec.help_text:
+            copy.addWidget(help_label)
+
         editor = self._build_editor(spec)
         self._editors[spec.key] = editor
-
-        layout.addWidget(label)
-        layout.addWidget(editor)
-
-        if spec.help_text:
-            help_label = QLabel(spec.help_text)
-            help_label.setObjectName("fieldHelp")
-            help_label.setWordWrap(True)
-            layout.addWidget(help_label)
 
         error = QLabel()
         error.setObjectName("fieldError")
         error.setWordWrap(True)
         error.hide()
         self._errors[spec.key] = error
-        layout.addWidget(error)
 
-        return container
+        row = QHBoxLayout()
+        row.setContentsMargins(16, 12, 16, 12)
+        row.setSpacing(12)
+        row.addLayout(copy, 1)
+        row.addWidget(editor, 0, Qt.AlignmentFlag.AlignVCenter)
+
+        stack = QVBoxLayout(card)
+        stack.setContentsMargins(0, 0, 0, 0)
+        stack.setSpacing(0)
+        stack.addLayout(row)
+        stack.addWidget(error)
+        return card
 
     def _build_editor(self, spec: FieldSpec) -> QWidget:
         """Create the input control matching the field's kind."""
@@ -155,6 +186,8 @@ class SettingsDialog(QDialog):
             spin.setSuffix(spec.suffix)
             spin.setSingleStep(1)
             spin.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            spin.setMinimumWidth(110)
+            spin.setFixedHeight(32)
             spin.valueChanged.connect(lambda value, key=spec.key: self._stage(key, value))
             return spin
 
@@ -164,6 +197,8 @@ class SettingsDialog(QDialog):
             return check
 
         combo = QComboBox()
+        combo.setMinimumWidth(220)
+        combo.setFixedHeight(32)
         labels = CHOICE_LABELS.get(spec.key, {})
         for choice in spec.choices:
             combo.addItem(labels.get(choice, choice), choice)
@@ -172,7 +207,6 @@ class SettingsDialog(QDialog):
         )
         return combo
 
-    # -- model plumbing ----------------------------------------------------
     def _load_values(self, config: AppConfig) -> None:
         """Write *config* into the controls without re-triggering validation."""
         self._loading = True
@@ -216,10 +250,8 @@ class SettingsDialog(QDialog):
             label.clear()
             label.hide()
 
-    # -- theme -------------------------------------------------------------
     def _style_sheet(self) -> str:
         """Return the dialog's style sheet, built from the design tokens."""
-        # Qt style sheets need a URL, and accept forward slashes on every platform.
         arrow_up = resources.asset_path(resources.ARROW_UP).as_posix()
         arrow_down = resources.asset_path(resources.ARROW_DOWN).as_posix()
         return f"""
@@ -231,26 +263,32 @@ class SettingsDialog(QDialog):
                 background: {colors.TRANSPARENT};
             }}
             QLabel#title {{
-                font-size: 16pt;
-                font-weight: 700;
+                font-size: 14px;
+                font-weight: 600;
             }}
             QLabel#subtitle {{
                 color: {colors.TEXT_SECONDARY};
-                font-size: 10pt;
+                font-size: 13px;
+            }}
+            QFrame#settingCard {{
+                background-color: {colors.SURFACE_CONTAINER};
+                border: 1px solid {colors.OUTLINE};
+                border-radius: {CARD_RADIUS}px;
             }}
             QLabel#fieldLabel {{
                 color: {colors.FIELD_LABEL};
-                font-size: 10.5pt;
+                font-size: 13px;
                 font-weight: 600;
             }}
             QLabel#fieldHelp {{
                 color: {colors.FIELD_HELP};
-                font-size: 9.5pt;
+                font-size: 12px;
             }}
             QLabel#fieldError {{
                 color: {colors.FIELD_ERROR};
-                font-size: 9.5pt;
-                font-weight: 600;
+                font-size: 12px;
+                font-weight: 500;
+                padding: 0 16px 10px 16px;
             }}
             QFrame#separator {{
                 color: {colors.OUTLINE};
@@ -262,21 +300,21 @@ class SettingsDialog(QDialog):
                 background-color: {colors.INPUT_BACKGROUND};
                 color: {colors.TEXT_PRIMARY};
                 border: 1px solid {colors.INPUT_BORDER};
-                border-radius: 8px;
-                padding: 7px 10px;
-                min-height: 22px;
-                font-size: 10.5pt;
+                border-radius: 4px;
+                padding: 0px 8px;
+                min-height: 32px;
+                font-size: 13px;
+            }}
+            QSpinBox:hover, QComboBox:hover {{
+                border: 1px solid {colors.TEXT_SECONDARY};
             }}
             QSpinBox:focus, QComboBox:focus {{
                 border: 1px solid {colors.INPUT_BORDER_FOCUS};
             }}
             QSpinBox::up-button, QSpinBox::down-button {{
                 width: 18px;
-                background-color: {colors.SURFACE_CONTAINER};
+                background-color: {colors.TRANSPARENT};
                 border: none;
-            }}
-            QSpinBox::up-button:hover, QSpinBox::down-button:hover {{
-                background-color: {colors.SURFACE_CONTAINER_HIGH};
             }}
             QSpinBox::up-arrow {{
                 image: url({arrow_up});
@@ -300,20 +338,21 @@ class SettingsDialog(QDialog):
             QComboBox QAbstractItemView {{
                 background-color: {colors.SURFACE_CONTAINER};
                 color: {colors.TEXT_PRIMARY};
-                selection-background-color: {colors.ACCENT_PRIMARY_DIM};
+                selection-background-color: {colors.ACCENT_PRIMARY_SOFT};
                 border: 1px solid {colors.OUTLINE};
+                padding: 4px;
             }}
             QCheckBox {{
                 color: {colors.TEXT_PRIMARY};
-                font-size: 10.5pt;
-                spacing: 9px;
+                font-size: 13px;
+                spacing: 8px;
                 padding: 4px 0;
             }}
             QCheckBox::indicator {{
-                width: 17px;
-                height: 17px;
-                border-radius: 5px;
-                border: 1px solid {colors.INPUT_BORDER};
+                width: 18px;
+                height: 18px;
+                border-radius: 3px;
+                border: 1px solid {colors.TEXT_SECONDARY};
                 background-color: {colors.INPUT_BACKGROUND};
             }}
             QCheckBox::indicator:checked {{

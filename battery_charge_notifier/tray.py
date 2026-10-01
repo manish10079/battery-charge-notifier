@@ -14,7 +14,7 @@ import logging
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
-from . import resources
+from . import colors, resources
 from .viewmodels.status import StatusViewModel
 
 logger = logging.getLogger(__name__)
@@ -106,6 +106,33 @@ class TrayIcon(QObject):
     def _build_menu(self) -> QMenu:
         """Create the context menu."""
         menu = QMenu()
+        menu.setStyleSheet(
+            f"""
+            QMenu {{
+                background-color: {colors.SURFACE_CONTAINER};
+                color: {colors.TEXT_PRIMARY};
+                border: 1px solid {colors.OUTLINE};
+                border-radius: 8px;
+                padding: 4px;
+            }}
+            QMenu::item {{
+                padding: 6px 12px;
+                min-height: 28px;
+                border-radius: 4px;
+            }}
+            QMenu::item:selected {{
+                background-color: {colors.CONTROL_FILL_HOVER};
+            }}
+            QMenu::item:disabled {{
+                color: {colors.TEXT_MUTED};
+            }}
+            QMenu::separator {{
+                height: 1px;
+                background: {colors.OUTLINE};
+                margin: 4px 8px;
+            }}
+            """
+        )
 
         self._status_action = menu.addAction(self._viewmodel.caption)
         self._status_action.setEnabled(False)

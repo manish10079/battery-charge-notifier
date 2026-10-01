@@ -53,7 +53,7 @@ class TestTokenModule:
         tokens = {
             name: value
             for name, value in vars(colors).items()
-            if name.isupper() and not name.startswith("_")
+            if name.isupper() and not name.startswith("_") and isinstance(value, str)
         }
         assert tokens, "colors.py should define named tokens"
         for name, value in tokens.items():
@@ -66,12 +66,32 @@ class TestTokenModule:
         for name, value in vars(colors).items():
             if not name.isupper() or name.startswith("_"):
                 continue
+            if not isinstance(value, str):
+                continue
             assert (
                 # Qt accepts #RRGGBB and #AARRGGBB.
                 re.fullmatch(r"#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?", value)
                 or re.fullmatch(r"rgba\([^)]*\)", value)
                 or value == "transparent"
             ), f"{name} = {value!r} is not a valid colour token"
+
+    def test_both_palettes_are_complete(self) -> None:
+        from battery_charge_notifier import colors
+        from dataclasses import fields
+
+        names = {field.name for field in fields(colors.Palette)}
+        assert names == {field.name for field in fields(colors.LIGHT)}
+        assert names == {field.name for field in fields(colors.DARK)}
+
+    def test_apply_theme_switches_module_tokens(self) -> None:
+        from battery_charge_notifier import colors
+
+        colors.apply_theme("dark")
+        assert colors.SURFACE == colors.DARK.SURFACE
+        assert colors.ACCENT_PRIMARY == "#60CDFF"
+        colors.apply_theme("light")
+        assert colors.SURFACE == colors.LIGHT.SURFACE
+        assert colors.ACCENT_PRIMARY == "#005FB8"
 
     def test_action_helpers_cover_both_actions(self) -> None:
         from battery_charge_notifier import colors

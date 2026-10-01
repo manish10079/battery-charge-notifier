@@ -1,8 +1,11 @@
-"""A battery gauge: a charge bar with optional threshold markers.
+"""A battery gauge: charge bar with threshold markers.
 
 The widget is purely a renderer. It is told the charge level, the accent to use
-and where the configured limits sit, and it paints accordingly - it never sees a
-:class:`~battery_charge_notifier.battery_service.BatteryState` or an ``AppConfig``.
+and where the configured limits sit, and it paints accordingly.
+
+When the reading sits past the relevant threshold, the fill beyond that marker
+uses the solid status accent; the portion before it uses the soft wash. Qt has
+no stylesheet animation, so there is no pulse.
 """
 
 from __future__ import annotations
@@ -17,26 +20,23 @@ BAR_HEIGHT = 18
 CORNER_RADIUS = 9
 MARKER_OVERHANG = 4
 PERCENT_MAX = 100
+MARKER_WIDTH = 2
+MARKER_HEIGHT = 14
 
 
 class BatteryGauge(QWidget):
     """A horizontal charge bar with tick marks at the configured limits."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        """Create an empty gauge.
-
-        Args:
-            parent: Optional Qt parent.
-        """
+        """Create an empty gauge."""
         super().__init__(parent)
         self._percent = 0
-        self._accent = colors.ACCENT_PRIMARY
+        self._action: str | None = None
         self._upper: int | None = None
         self._lower: int | None = None
         self.setMinimumHeight(BAR_HEIGHT + 2 * MARKER_OVERHANG)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
-    # -- input -------------------------------------------------------------
     def set_reading(
         self,
         percent: int,
@@ -54,12 +54,11 @@ class BatteryGauge(QWidget):
             lower: Lower limit to mark, if known.
         """
         self._percent = max(0, min(PERCENT_MAX, int(percent)))
-        self._accent = colors.accent_for(action) if action else colors.ACCENT_PRIMARY
+        self._action = action
         self._upper = upper
         self._lower = lower
         self.update()
 
-    # -- geometry ----------------------------------------------------------
     def sizeHint(self) -> QSize:
         """Preferred size."""
         return QSize(360, BAR_HEIGHT + 2 * MARKER_OVERHANG)
@@ -68,35 +67,65 @@ class BatteryGauge(QWidget):
         """Smallest usable size."""
         return QSize(140, BAR_HEIGHT + 2 * MARKER_OVERHANG)
 
-    # -- painting ----------------------------------------------------------
     def paintEvent(self, event) -> None:  # noqa: ANN001 - Qt signature
-        """Paint the track, the charge fill and the threshold markers."""
+        """Paint the track, the split charge fill and the threshold markers."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
         track = QRectF(
-            0,
+            0.5,
             (self.height() - BAR_HEIGHT) / 2,
-            self.width(),
+            self.width() - 1,
             BAR_HEIGHT,
         )
 
-        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setPen(QPen(QColor(colors.OUTLINE), 1))
         painter.setBrush(QColor(colors.GAUGE_TRACK))
         painter.drawRoundedRect(track, CORNER_RADIUS, CORNER_RADIUS)
 
         if self._percent > 0:
-            filled = QRectF(track)
-            filled.setWidth(track.width() * self._percent / PERCENT_MAX)
-            # A very small fill would otherwise render as a sliver that ignores
-            # the corner radius; keep it at least one diameter wide.
-            filled.setWidth(max(filled.width(), CORNER_RADIUS * 2))
-            painter.setBrush(QColor(self._accent))
-            painter.drawRoundedRect(filled, CORNER_RADIUS, CORNER_RADIUS)
+            self._paint_fill(painter, track)
 
         self._paint_marker(painter, track, self._lower, colors.GAUGE_TICK)
         self._paint_marker(painter, track, self._upper, colors.GAUGE_TICK_MAJOR)
         painter.end()
+
+    def _paint_fill(self, painter: QPainter, track: QRectF) -> None:
+        """Fill the track up to the current percent, splitting at the threshold."""
+        wash = colors.accent_soft_for(self._action or "unplug") if self._action else colors.ACCENT_PRIMARY_SOFT
+        solid = colors.accent_for(self._action) if self._action else colors.ACCENT_PRIMARY
+        threshold = self._threshold_for_action()
+
+        fill_width = max(track.width() * self._percent / PERCENT_MAX, CORNER_RADIUS * 2)
+        painter.setPen(Qt.PenStyle.NoPen)
+
+        if threshold is None or self._percent <= threshold:
+            filled = QRectF(track)
+            filled.setWidth(fill_width)
+            painter.setBrush(QColor(wash))
+            painter.drawRoundedRect(filled, CORNER_RADIUS, CORNER_RADIUS)
+            return
+
+        split = track.width() * threshold / PERCENT_MAX
+        before = QRectF(track)
+        before.setWidth(max(split, CORNER_RADIUS * 2))
+        painter.setBrush(QColor(wash))
+        painter.drawRoundedRect(before, CORNER_RADIUS, CORNER_RADIUS)
+
+        after = QRectF(track)
+        after.setLeft(track.left() + split)
+        after.setWidth(fill_width - split)
+        if after.width() > 1:
+            painter.setBrush(QColor(solid))
+            painter.drawRoundedRect(after, CORNER_RADIUS, CORNER_RADIUS)
+
+    def _threshold_for_action(self) -> int | None:
+        """The limit the current warning has crossed, if any."""
+        if self._action == "unplug":
+            return self._upper
+        if self._action == "plug_in":
+            return self._lower
+        return None
 
     def _paint_marker(
         self,
@@ -109,13 +138,14 @@ class BatteryGauge(QWidget):
         if percent is None:
             return
         x = track.left() + track.width() * max(0, min(PERCENT_MAX, percent)) / PERCENT_MAX
-        pen = QPen(QColor(token), 1.5)
+        mid = track.center().y()
+        pen = QPen(QColor(token), MARKER_WIDTH)
         painter.setPen(pen)
         painter.drawLine(
             int(x),
-            int(track.top() - MARKER_OVERHANG),
+            int(mid - MARKER_HEIGHT / 2),
             int(x),
-            int(track.bottom() + MARKER_OVERHANG),
+            int(mid + MARKER_HEIGHT / 2),
         )
 
 
