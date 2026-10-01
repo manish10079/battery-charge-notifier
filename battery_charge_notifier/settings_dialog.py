@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from . import colors, resources
+from . import __version__, colors, resources
 from .app_config import AppConfig, FieldSpec
 from .viewmodels.settings import SettingsViewModel
 from .widgets import ActionButton, ButtonRole
@@ -147,10 +147,15 @@ class SettingsDialog(QDialog):
         restore.clicked.connect(self._viewmodel.reset_to_defaults)
         close.clicked.connect(self.accept)
 
+        version = QLabel(f"Version {__version__}")
+        version.setObjectName("versionLabel")
+        version.setToolTip("major.minor.patch")
+
         footer = QHBoxLayout()
         footer.setSpacing(8)
-        footer.addWidget(restore)
+        footer.addWidget(version)
         footer.addStretch(1)
+        footer.addWidget(restore)
         footer.addWidget(close)
 
         separator = QFrame()
@@ -304,6 +309,10 @@ class SettingsDialog(QDialog):
             QLabel#subtitle {{
                 color: {colors.TEXT_SECONDARY};
                 font-size: 13px;
+            }}
+            QLabel#versionLabel {{
+                color: {colors.TEXT_MUTED};
+                font-size: 12px;
             }}
             QFrame#settingCard {{
                 background-color: {colors.SURFACE_CONTAINER};

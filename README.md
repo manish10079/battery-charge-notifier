@@ -76,7 +76,7 @@ battery-charge-notifier-gui
 
 | Option              | Effect                                                |
 | ------------------- | ----------------------------------------------------- |
-| `--version`         | Print the version and exit                            |
+| `--version`         | Print `major.minor.patch` and exit                    |
 | `--show-settings`   | Open the settings dialog immediately after starting   |
 | `--no-startup-sync` | Never create or update the launch-at-login entry      |
 | `-v`, `--verbose`   | Enable debug logging                                  |
@@ -96,6 +96,7 @@ Only one instance runs at a time. Launching a second copy hands a
 | *Settings…*         | Open the settings dialog (also on a tray double-click)       |
 | *Test warnings ▸*   | Preview the upper or lower warning                           |
 | *Pause monitoring*  | Stop sampling without quitting                               |
+| *Version x.y.z*     | Read-only; the running `major.minor.patch` build             |
 | *Quit Battery Charge Notifier* | Exit                                                         |
 
 **Warning popup** - a frameless, always-on-top card showing the required action,
@@ -135,12 +136,39 @@ outright and explained inline, and the previous configuration is left untouched.
 
 ---
 
+## Versioning
+
+The app uses **semantic versioning**: `major.minor.patch` (the patch number is
+the bug-fix counter).
+
+| Part    | When to bump                                              | Example     |
+| ------- | --------------------------------------------------------- | ----------- |
+| major   | Incompatible change (behaviour users cannot ignore)       | `1.0.0` → `2.0.0` |
+| minor   | Compatible new feature                                    | `1.0.0` → `1.1.0` |
+| patch   | Bug fix, with no new feature                              | `1.0.0` → `1.0.1` |
+
+The single source of truth is `__version__` in
+`battery_charge_notifier/__init__.py`. Packaging (`pyproject.toml`),
+`--version`, Qt's application version, the settings footer, and the tray menu
+all read that string. After a release, bump it there and nowhere else.
+
+Print the running version:
+
+```console
+python -m battery_charge_notifier --version
+```
+
+The settings dialog footer and the tray menu also show `Version x.y.z`.
+
+---
+
 ## Development
 
 ### Layout
 
 ```
 battery_charge_notifier/
+    __init__.py          __version__ (major.minor.patch)
     __main__.py          python -m battery_charge_notifier
     main.py              entry point, argument parsing, single-instance gate
     controller.py        dependency injection and signal wiring

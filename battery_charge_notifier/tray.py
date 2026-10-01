@@ -14,7 +14,7 @@ import logging
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
-from . import colors, resources
+from . import __version__, colors, resources
 from .viewmodels.status import StatusViewModel
 
 logger = logging.getLogger(__name__)
@@ -164,6 +164,9 @@ class TrayIcon(QObject):
         self._toggle_action.toggled.connect(self._on_toggle)
 
         menu.addSeparator()
+
+        version = menu.addAction(f"Version {__version__}")
+        version.setEnabled(False)
 
         quit_action = menu.addAction("Quit Battery Charge Notifier")
         quit_action.triggered.connect(self.quitRequested)
