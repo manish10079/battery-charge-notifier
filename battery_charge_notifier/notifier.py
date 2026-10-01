@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 import time
 
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import QSystemTrayIcon
 
 from .app_config import AppConfig
@@ -51,6 +51,9 @@ class Notifier(QObject):
         self._config = config or AppConfig()
         self._tray_icon = tray_icon
         self._window: WarningWindow | None = None
+        self._auto_close = QTimer(self)
+        self._auto_close.setSingleShot(True)
+        self._auto_close.timeout.connect(self._on_popup_timeout)
 
         self._viewmodel = WarningViewModel(self._config, self)
         self._viewmodel.snoozeRequested.connect(self._on_snooze)
@@ -81,6 +84,19 @@ class Notifier(QObject):
         """
         self._config = config
         self._viewmodel.apply_config(config)
+        if self.is_popup_visible():
+            self._arm_popup_timeout()
+
+    def restyle(self) -> None:
+        """Repaint an open popup after the theme tokens change."""
+        if self._window is None or self._viewmodel.content is None:
+            return
+        self._window.apply_content(self._viewmodel.content)
+        from .widgets import ActionButton
+
+        for button in self._window.findChildren(ActionButton):
+            button.set_role(button.role)
+            button.set_action(getattr(button, "_action", "unplug"))
 
     def set_tray_icon(self, tray_icon: QSystemTrayIcon | None) -> None:
         """Attach (or detach) the tray icon used for balloon messages."""
@@ -123,9 +139,10 @@ class Notifier(QObject):
         self._present_popup()
 
     def dismiss(self) -> None:
-        """Hide the popup if it is open."""
+        """Slide the popup out, then hide it."""
+        self._auto_close.stop()
         if self._window is not None:
-            self._window.hide()
+            self._window.slide_out_and_hide()
 
     # -- internals ---------------------------------------------------------
     def _present_popup(self) -> None:
@@ -138,6 +155,22 @@ class Notifier(QObject):
             if current is not None:
                 self._window.apply_content(current)
         self._window.show_at_bottom_right()
+        self._arm_popup_timeout()
+
+    def _arm_popup_timeout(self) -> None:
+        """Start or cancel the auto-close timer from the current setting.
+
+        ``popup_timeout_seconds`` of 0 means no timeout.
+        """
+        self._auto_close.stop()
+        seconds = self._config.popup_timeout_seconds
+        if seconds > 0 and self.is_popup_visible():
+            self._auto_close.start(seconds * 1000)
+
+    def _on_popup_timeout(self) -> None:
+        """Close the popup when the configured timeout elapses."""
+        logger.info("Popup timeout elapsed; dismissing")
+        self.dismiss()
 
     def _show_balloon(self, content: WarningContent) -> bool:
         """Show a tray balloon. Return whether the platform accepted it."""

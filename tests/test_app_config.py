@@ -38,9 +38,11 @@ class TestDefaults:
         assert config.minimum_gap == 10
         assert config.snooze_minutes == 15
         assert config.poll_interval_seconds == 60
+        assert config.popup_timeout_seconds == 0
         assert config.monitoring_enabled is True
         assert config.launch_at_startup is True
         assert config.notification_mode == "popup"
+        assert config.theme == "system"
 
     def test_every_schema_field_exists_on_the_config(self) -> None:
         for spec in FIELDS:

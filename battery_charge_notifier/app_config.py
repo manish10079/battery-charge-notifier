@@ -35,6 +35,7 @@ APP_SLUG = "battery-charge-notifier"
 CONFIG_FILENAME = "config.json"
 
 NotificationMode = Literal["popup", "tray"]
+ThemePreference = Literal["system", "light", "dark"]
 FieldKind = Literal["int", "bool", "choice"]
 
 
@@ -133,6 +134,19 @@ FIELDS: tuple[FieldSpec, ...] = (
         help_text="How often the battery is sampled, on a background thread.",
     ),
     FieldSpec(
+        key="popup_timeout_seconds",
+        label="Popup timeout",
+        kind="int",
+        default=0,
+        minimum=0,
+        maximum=3600,
+        suffix=" s",
+        help_text=(
+            "Seconds before the warning popup closes itself. 0 means no timeout "
+            "(stays until you dismiss it). You can set this back to 0 at any time."
+        ),
+    ),
+    FieldSpec(
         key="monitoring_enabled",
         label="Monitoring enabled",
         kind="bool",
@@ -157,6 +171,14 @@ FIELDS: tuple[FieldSpec, ...] = (
             "notification. Only the selected channel is used."
         ),
     ),
+    FieldSpec(
+        key="theme",
+        label="Theme",
+        kind="choice",
+        default="system",
+        choices=("system", "light", "dark"),
+        help_text="Appearance of windows and the tray menu. System follows Windows light or dark.",
+    ),
 )
 
 FIELDS_BY_KEY: Mapping[str, FieldSpec] = {spec.key: spec for spec in FIELDS}
@@ -175,9 +197,11 @@ class AppConfig:
     rearm_gap: int = 5
     snooze_minutes: int = 15
     poll_interval_seconds: int = 60
+    popup_timeout_seconds: int = 0
     monitoring_enabled: bool = True
     launch_at_startup: bool = True
     notification_mode: NotificationMode = "popup"
+    theme: ThemePreference = "system"
 
     @property
     def upper_rearm_point(self) -> int:

@@ -3,8 +3,8 @@
 Every control is generated from :data:`~battery_charge_notifier.app_config.FIELDS`.
 There is no OK/Cancel pair: a valid edit is persisted as soon as it is made.
 
-The layout is two columns of single-row setting cards, matching the Windows 11
-settings pattern: label and help on the left, control on the right.
+The layout is two columns of setting cards: label and control on the first
+row, help text on the second. The window is freely resizable.
 """
 
 from __future__ import annotations
@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QScrollArea,
     QSpinBox,
     QVBoxLayout,
     QWidget,
@@ -37,17 +38,29 @@ CHOICE_LABELS: dict[str, dict[str, str]] = {
     "notification_mode": {
         "popup": "Popup window",
         "tray": "Tray notification only",
-    }
+    },
+    "theme": {
+        "system": "System",
+        "light": "Light",
+        "dark": "Dark",
+    },
 }
 
-#: Fields in the left column (thresholds) then the right (timing / behaviour).
-LEFT_KEYS = ("upper_limit", "lower_limit", "minimum_gap", "rearm_gap")
-RIGHT_KEYS = (
+#: Fields split evenly across two columns, in schema order.
+LEFT_KEYS = (
+    "upper_limit",
+    "lower_limit",
+    "minimum_gap",
+    "rearm_gap",
     "snooze_minutes",
     "poll_interval_seconds",
+)
+RIGHT_KEYS = (
+    "popup_timeout_seconds",
     "monitoring_enabled",
     "launch_at_startup",
     "notification_mode",
+    "theme",
 )
 
 
@@ -66,8 +79,17 @@ class SettingsDialog(QDialog):
         self.setWindowTitle("Battery Charge Notifier settings")
         self.setWindowIcon(resources.load_icon(resources.APP_ICON))
         self.setModal(False)
-        self.setFixedWidth(DIALOG_WIDTH)
-        self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
+        self.setMinimumSize(360, 280)
+        self.resize(DIALOG_WIDTH, 560)
+        self.setSizeGripEnabled(True)
+        self.setWindowFlags(
+            Qt.WindowType.Window
+            | Qt.WindowType.WindowSystemMenuHint
+            | Qt.WindowType.WindowTitleHint
+            | Qt.WindowType.WindowMinimizeButtonHint
+            | Qt.WindowType.WindowMaximizeButtonHint
+            | Qt.WindowType.WindowCloseButtonHint
+        )
 
         self._build_ui()
         self._load_values(viewmodel.config)
@@ -102,10 +124,23 @@ class SettingsDialog(QDialog):
         columns = QGridLayout()
         columns.setHorizontalSpacing(COLUMN_GAP)
         columns.setVerticalSpacing(0)
+        columns.setContentsMargins(0, 0, 0, 0)
         columns.addLayout(left, 0, 0)
         columns.addLayout(right, 0, 1)
         columns.setColumnStretch(0, 1)
         columns.setColumnStretch(1, 1)
+
+        body = QWidget()
+        body.setObjectName("settingsBody")
+        body.setLayout(columns)
+
+        scroller = QScrollArea()
+        scroller.setObjectName("settingsScroller")
+        scroller.setWidget(body)
+        scroller.setWidgetResizable(True)
+        scroller.setFrameShape(QFrame.Shape.NoFrame)
+        scroller.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroller.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
         restore = ActionButton("Restore defaults", ButtonRole.OUTLINE)
         close = ActionButton("Close", ButtonRole.PRIMARY)
@@ -128,7 +163,7 @@ class SettingsDialog(QDialog):
         layout.addWidget(title)
         layout.addWidget(subtitle)
         layout.addSpacing(8)
-        layout.addLayout(columns)
+        layout.addWidget(scroller, 1)
         layout.addSpacing(8)
         layout.addWidget(separator)
         layout.addSpacing(8)
@@ -136,8 +171,14 @@ class SettingsDialog(QDialog):
 
         self.setStyleSheet(self._style_sheet())
 
+    def restyle(self) -> None:
+        """Rebuild the style sheet after the theme tokens change."""
+        self.setStyleSheet(self._style_sheet())
+        for button in self.findChildren(ActionButton):
+            button.set_role(button.role)
+
     def _build_card(self, spec: FieldSpec) -> QWidget:
-        """Create one single-row setting card: copy on the left, control on the right."""
+        """Create a card: label + control on the first row, help text on the second."""
         card = QFrame()
         card.setObjectName("settingCard")
         self._cards[spec.key] = card
@@ -145,36 +186,30 @@ class SettingsDialog(QDialog):
         label = QLabel(spec.label)
         label.setObjectName("fieldLabel")
 
-        help_label = QLabel(spec.help_text)
-        help_label.setObjectName("fieldHelp")
-        help_label.setWordWrap(True)
-
-        copy = QVBoxLayout()
-        copy.setContentsMargins(0, 0, 0, 0)
-        copy.setSpacing(2)
-        copy.addWidget(label)
-        if spec.help_text:
-            copy.addWidget(help_label)
-
         editor = self._build_editor(spec)
         self._editors[spec.key] = editor
+
+        top = QHBoxLayout()
+        top.setContentsMargins(0, 0, 0, 0)
+        top.setSpacing(12)
+        top.addWidget(label, 1, Qt.AlignmentFlag.AlignVCenter)
+        top.addWidget(editor, 0, Qt.AlignmentFlag.AlignVCenter)
+
+        stack = QVBoxLayout(card)
+        stack.setContentsMargins(16, 12, 16, 12)
+        stack.setSpacing(4)
+        stack.addLayout(top)
+        if spec.help_text:
+            help_label = QLabel(spec.help_text)
+            help_label.setObjectName("fieldHelp")
+            help_label.setWordWrap(True)
+            stack.addWidget(help_label)
 
         error = QLabel()
         error.setObjectName("fieldError")
         error.setWordWrap(True)
         error.hide()
         self._errors[spec.key] = error
-
-        row = QHBoxLayout()
-        row.setContentsMargins(16, 12, 16, 12)
-        row.setSpacing(12)
-        row.addLayout(copy, 1)
-        row.addWidget(editor, 0, Qt.AlignmentFlag.AlignVCenter)
-
-        stack = QVBoxLayout(card)
-        stack.setContentsMargins(0, 0, 0, 0)
-        stack.setSpacing(0)
-        stack.addLayout(row)
         stack.addWidget(error)
         return card
 
@@ -288,13 +323,45 @@ class SettingsDialog(QDialog):
                 color: {colors.FIELD_ERROR};
                 font-size: 12px;
                 font-weight: 500;
-                padding: 0 16px 10px 16px;
             }}
             QFrame#separator {{
                 color: {colors.OUTLINE};
                 background-color: {colors.OUTLINE};
                 max-height: 1px;
                 border: none;
+            }}
+            QScrollArea#settingsScroller {{
+                background: {colors.TRANSPARENT};
+                border: none;
+            }}
+            QScrollArea#settingsScroller > QWidget > QWidget {{
+                background: {colors.TRANSPARENT};
+            }}
+            QScrollBar:vertical {{
+                background: {colors.TRANSPARENT};
+                width: 10px;
+                margin: 0;
+            }}
+            QScrollBar:horizontal {{
+                background: {colors.TRANSPARENT};
+                height: 10px;
+                margin: 0;
+            }}
+            QScrollBar::handle:vertical, QScrollBar::handle:horizontal {{
+                background: {colors.SCROLLBAR_HANDLE};
+                border-radius: 4px;
+                min-height: 24px;
+                min-width: 24px;
+            }}
+            QScrollBar::handle:vertical:hover, QScrollBar::handle:horizontal:hover {{
+                background: {colors.SCROLLBAR_HANDLE_HOVER};
+            }}
+            QScrollBar::add-line, QScrollBar::sub-line {{
+                height: 0;
+                width: 0;
+            }}
+            QScrollBar::add-page, QScrollBar::sub-page {{
+                background: {colors.TRANSPARENT};
             }}
             QSpinBox, QComboBox {{
                 background-color: {colors.INPUT_BACKGROUND};

@@ -155,7 +155,7 @@ DARK = Palette(
     ACCENT_PRIMARY_DIM="#67D3FF",
     ACCENT_PRIMARY_SOFT="rgba(96, 205, 255, 38)",
     ACCENT_OK="#6CCB5F",
-    GAUGE_TRACK="#1A1A1A",
+    GAUGE_TRACK="#3A3A3A",
     GAUGE_TICK="rgba(255, 255, 255, 92)",
     GAUGE_TICK_MAJOR="rgba(255, 255, 255, 156)",
     BUTTON_BACKGROUND="rgba(255, 255, 255, 15)",
@@ -289,6 +289,25 @@ def apply_system_theme(widget: QWidget | QApplication | None = None) -> ThemeNam
     name = detect_system_theme(widget)
     apply_theme(name)
     return name
+
+
+def apply_preference(preference: str, widget: QWidget | QApplication | None = None) -> ThemeName:
+    """Apply a user theme preference: ``system``, ``light`` or ``dark``.
+
+    Args:
+        preference: Stored setting value.
+        widget: Used only when *preference* is ``system``.
+
+    Returns:
+        The concrete palette that was applied.
+    """
+    if preference == "dark":
+        apply_theme("dark")
+        return "dark"
+    if preference == "light":
+        apply_theme("light")
+        return "light"
+    return apply_system_theme(widget)
 
 
 def accent_soft_for(action: str) -> str:

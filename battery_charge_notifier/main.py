@@ -17,7 +17,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
-from . import __version__, colors, resources
+from . import __version__, resources
 from .controller import AppController
 from .single_instance import COMMAND_SHOW_SETTINGS, SingleInstance
 
@@ -91,7 +91,6 @@ def create_application(argv: list[str]) -> QApplication:
     app.setOrganizationName(ORGANISATION_NAME)
     app.setQuitOnLastWindowClosed(False)
     app.setWindowIcon(resources.load_icon(resources.APP_ICON))
-    colors.apply_system_theme(app)
     return app
 
 

@@ -53,6 +53,35 @@ class TrayIcon(QObject):
 
         viewmodel.statusChanged.connect(self.refresh)
 
+    @staticmethod
+    def _menu_style() -> str:
+        """Tray menu stylesheet from the current colour tokens."""
+        return f"""
+            QMenu {{
+                background-color: {colors.SURFACE_CONTAINER};
+                color: {colors.TEXT_PRIMARY};
+                border: 1px solid {colors.OUTLINE};
+                border-radius: 8px;
+                padding: 4px;
+            }}
+            QMenu::item {{
+                padding: 6px 12px;
+                min-height: 28px;
+                border-radius: 4px;
+            }}
+            QMenu::item:selected {{
+                background-color: {colors.CONTROL_FILL_HOVER};
+            }}
+            QMenu::item:disabled {{
+                color: {colors.TEXT_MUTED};
+            }}
+            QMenu::separator {{
+                height: 1px;
+                background: {colors.OUTLINE};
+                margin: 4px 8px;
+            }}
+            """
+
     # -- API ---------------------------------------------------------------
     @property
     def is_available(self) -> bool:
@@ -88,6 +117,12 @@ class TrayIcon(QObject):
         """Hide the tray icon."""
         self._icon.hide()
 
+    def restyle(self) -> None:
+        """Rebuild the menu style after the theme tokens change."""
+        menu = self._icon.contextMenu()
+        if menu is not None:
+            menu.setStyleSheet(self._menu_style())
+
     def refresh(self) -> None:
         """Re-read the caption, tooltip and icon from the ViewModel."""
         self._status_action.setText(self._viewmodel.caption)
@@ -106,33 +141,7 @@ class TrayIcon(QObject):
     def _build_menu(self) -> QMenu:
         """Create the context menu."""
         menu = QMenu()
-        menu.setStyleSheet(
-            f"""
-            QMenu {{
-                background-color: {colors.SURFACE_CONTAINER};
-                color: {colors.TEXT_PRIMARY};
-                border: 1px solid {colors.OUTLINE};
-                border-radius: 8px;
-                padding: 4px;
-            }}
-            QMenu::item {{
-                padding: 6px 12px;
-                min-height: 28px;
-                border-radius: 4px;
-            }}
-            QMenu::item:selected {{
-                background-color: {colors.CONTROL_FILL_HOVER};
-            }}
-            QMenu::item:disabled {{
-                color: {colors.TEXT_MUTED};
-            }}
-            QMenu::separator {{
-                height: 1px;
-                background: {colors.OUTLINE};
-                margin: 4px 8px;
-            }}
-            """
-        )
+        menu.setStyleSheet(self._menu_style())
 
         self._status_action = menu.addAction(self._viewmodel.caption)
         self._status_action.setEnabled(False)

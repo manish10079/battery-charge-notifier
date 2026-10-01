@@ -16,12 +16,12 @@ from PySide6.QtWidgets import QSizePolicy, QWidget
 
 from .. import colors
 
-BAR_HEIGHT = 18
-CORNER_RADIUS = 9
-MARKER_OVERHANG = 4
+BAR_HEIGHT = 10
+CORNER_RADIUS = 5
+MARKER_OVERHANG = 3
 PERCENT_MAX = 100
 MARKER_WIDTH = 2
-MARKER_HEIGHT = 14
+MARKER_HEIGHT = 12
 
 
 class BatteryGauge(QWidget):
@@ -92,40 +92,13 @@ class BatteryGauge(QWidget):
 
     def _paint_fill(self, painter: QPainter, track: QRectF) -> None:
         """Fill the track up to the current percent, splitting at the threshold."""
-        wash = colors.accent_soft_for(self._action or "unplug") if self._action else colors.ACCENT_PRIMARY_SOFT
-        solid = colors.accent_for(self._action) if self._action else colors.ACCENT_PRIMARY
-        threshold = self._threshold_for_action()
-
+        fill = colors.accent_for(self._action) if self._action else colors.ACCENT_PRIMARY
         fill_width = max(track.width() * self._percent / PERCENT_MAX, CORNER_RADIUS * 2)
         painter.setPen(Qt.PenStyle.NoPen)
-
-        if threshold is None or self._percent <= threshold:
-            filled = QRectF(track)
-            filled.setWidth(fill_width)
-            painter.setBrush(QColor(wash))
-            painter.drawRoundedRect(filled, CORNER_RADIUS, CORNER_RADIUS)
-            return
-
-        split = track.width() * threshold / PERCENT_MAX
-        before = QRectF(track)
-        before.setWidth(max(split, CORNER_RADIUS * 2))
-        painter.setBrush(QColor(wash))
-        painter.drawRoundedRect(before, CORNER_RADIUS, CORNER_RADIUS)
-
-        after = QRectF(track)
-        after.setLeft(track.left() + split)
-        after.setWidth(fill_width - split)
-        if after.width() > 1:
-            painter.setBrush(QColor(solid))
-            painter.drawRoundedRect(after, CORNER_RADIUS, CORNER_RADIUS)
-
-    def _threshold_for_action(self) -> int | None:
-        """The limit the current warning has crossed, if any."""
-        if self._action == "unplug":
-            return self._upper
-        if self._action == "plug_in":
-            return self._lower
-        return None
+        filled = QRectF(track)
+        filled.setWidth(fill_width)
+        painter.setBrush(QColor(fill))
+        painter.drawRoundedRect(filled, CORNER_RADIUS, CORNER_RADIUS)
 
     def _paint_marker(
         self,

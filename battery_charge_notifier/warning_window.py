@@ -13,7 +13,9 @@ gives it. Presentation:
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
+import os
+
+from PySide6.QtCore import QEasingCurve, QPoint, QPropertyAnimation, Qt
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -34,6 +36,7 @@ SCREEN_MARGIN = 28
 ICON_SIZE = 24
 POPUP_WIDTH = 440
 ACCENT_BAR_HEIGHT = 3
+SLIDE_MS = 280
 
 
 class WarningWindow(QWidget):
@@ -57,6 +60,12 @@ class WarningWindow(QWidget):
 
         self._card = QFrame(self)
         self._card.setObjectName("card")
+        self._rest_pos = QPoint()
+        self._slide = QPropertyAnimation(self, b"pos", self)
+        self._slide.setDuration(SLIDE_MS)
+        self._slide.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._slide.finished.connect(self._on_slide_finished)
+        self._hiding = False
 
         self._build_ui()
         viewmodel.contentChanged.connect(self.apply_content)
@@ -185,17 +194,67 @@ class WarningWindow(QWidget):
         self.adjustSize()
 
     def show_at_bottom_right(self) -> None:
-        """Show the window without activating it, near the notification area."""
+        """Slide in from the right without activating the window."""
+        self._slide.stop()
+        self._hiding = False
         self.adjustSize()
-        screen = QApplication.primaryScreen()
-        if screen is not None:
-            available = screen.availableGeometry()
-            x = available.right() - self.width() - SCREEN_MARGIN
-            y = available.bottom() - self.height() - SCREEN_MARGIN
-            self.move(max(available.left(), x), max(available.top(), y))
-        self.show()
-        self.raise_()
+        rest, off = self._slide_points()
+        self._rest_pos = rest
+        if self._animations_enabled():
+            self.move(off)
+            self.show()
+            self.raise_()
+            self._slide.setEasingCurve(QEasingCurve.Type.OutCubic)
+            self._slide.setStartValue(off)
+            self._slide.setEndValue(rest)
+            self._slide.start()
+        else:
+            self.move(rest)
+            self.show()
+            self.raise_()
         self.setWindowState(self.windowState() & ~Qt.WindowState.WindowMinimized)
+
+    def slide_out_and_hide(self) -> None:
+        """Slide off to the right, then hide. Instant when animations are off."""
+        if not self.isVisible():
+            return
+        self._slide.stop()
+        if not self._animations_enabled():
+            self.hide()
+            return
+        rest, off = self._slide_points()
+        self._hiding = True
+        self._slide.setEasingCurve(QEasingCurve.Type.InCubic)
+        self._slide.setStartValue(self.pos())
+        self._slide.setEndValue(off)
+        self._slide.start()
+
+    def _slide_points(self) -> tuple[QPoint, QPoint]:
+        """Return ``(rest, offscreen-right)`` for the current size."""
+        screen = QApplication.primaryScreen()
+        if screen is None:
+            rest = QPoint(SCREEN_MARGIN, SCREEN_MARGIN)
+            return rest, rest + QPoint(self.width() + SCREEN_MARGIN, 0)
+        available = screen.availableGeometry()
+        x = available.right() - self.width() - SCREEN_MARGIN
+        y = available.bottom() - self.height() - SCREEN_MARGIN
+        rest = QPoint(max(available.left(), x), max(available.top(), y))
+        off = QPoint(available.right() + SCREEN_MARGIN, rest.y())
+        return rest, off
+
+    def _on_slide_finished(self) -> None:
+        """Hide after a completed slide-out."""
+        if self._hiding:
+            self._hiding = False
+            self.hide()
+            self.move(self._rest_pos)
+
+    @staticmethod
+    def _animations_enabled() -> bool:
+        """Skip motion in tests and offscreen sessions so hide stays synchronous."""
+        if os.environ.get("PYTEST_CURRENT_TEST"):
+            return False
+        return os.environ.get("QT_QPA_PLATFORM", "").lower() != "offscreen"
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802 - Qt signature
         """Close on ``Esc``."""

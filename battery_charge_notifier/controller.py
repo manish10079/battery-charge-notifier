@@ -15,6 +15,7 @@ import logging
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QApplication
 
+from . import colors
 from .app_config import AppConfig, ConfigManager
 from .battery_service import BatteryService, BatteryState, PsutilBatteryService
 from .monitor import BatteryMonitor, WarningKind
@@ -75,6 +76,7 @@ class AppController(QObject):
             logger.warning(
                 "Repaired %d configuration value(s) on load", len(self._config_manager.load_issues)
             )
+        colors.apply_preference(self._config.theme, app)
 
         self._battery_service = battery_service or PsutilBatteryService()
 
@@ -218,6 +220,12 @@ class AppController(QObject):
         self._monitor.apply_config(config)
         self._notifier.apply_config(config)
         self._status_viewmodel.apply_config(config)
+        if config.theme != previous.theme:
+            colors.apply_preference(config.theme, self._app)
+            self._tray.restyle()
+            self._notifier.restyle()
+            if self._settings_dialog is not None:
+                self._settings_dialog.restyle()
 
         if config.launch_at_startup != previous.launch_at_startup:
             self._reconcile_startup(config.launch_at_startup)

@@ -93,6 +93,14 @@ class TestTokenModule:
         assert colors.SURFACE == colors.LIGHT.SURFACE
         assert colors.ACCENT_PRIMARY == "#005FB8"
 
+    def test_apply_preference_light_and_dark(self) -> None:
+        from battery_charge_notifier import colors
+
+        assert colors.apply_preference("dark") == "dark"
+        assert colors.current_theme() == "dark"
+        assert colors.apply_preference("light") == "light"
+        assert colors.current_theme() == "light"
+
     def test_action_helpers_cover_both_actions(self) -> None:
         from battery_charge_notifier import colors
 

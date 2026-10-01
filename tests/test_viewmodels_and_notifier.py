@@ -275,6 +275,27 @@ class TestNotifier:
         assert notifier.is_popup_visible() is True
         notifier.dismiss()
 
+    def test_zero_timeout_leaves_the_popup_open(self, qtbot) -> None:
+        notifier = Notifier(AppConfig(notification_mode="popup", popup_timeout_seconds=0))
+        notifier.notify(WarningEvent(WarningKind.UPPER, 90, time.monotonic()))
+        qtbot.wait(80)
+        assert notifier.is_popup_visible() is True
+        notifier.dismiss()
+
+    def test_positive_timeout_closes_the_popup(self, qtbot) -> None:
+        notifier = Notifier(AppConfig(notification_mode="popup", popup_timeout_seconds=1))
+        notifier.notify(WarningEvent(WarningKind.UPPER, 90, time.monotonic()))
+        assert notifier.is_popup_visible() is True
+        qtbot.waitUntil(lambda: not notifier.is_popup_visible(), timeout=2000)
+
+    def test_timeout_can_be_set_back_to_zero_without_reset(self, qtbot) -> None:
+        notifier = Notifier(AppConfig(notification_mode="popup", popup_timeout_seconds=1))
+        notifier.notify(WarningEvent(WarningKind.UPPER, 90, time.monotonic()))
+        notifier.apply_config(AppConfig(notification_mode="popup", popup_timeout_seconds=0))
+        qtbot.wait(80)
+        assert notifier.is_popup_visible() is True
+        notifier.dismiss()
+
     def test_test_warning_falls_back_when_tray_is_missing(self, qtbot) -> None:
         notifier = Notifier(AppConfig(notification_mode="tray"))
         notifier.present_test_warning(WarningKind.LOWER, 9)
