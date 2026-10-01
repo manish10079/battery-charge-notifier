@@ -36,7 +36,7 @@ administrator rights and makes no network calls.
 | Poll interval   | 60 s    | How often the battery is sampled, on a background thread          |
 | Monitoring      | on      | Pause or resume all monitoring                                    |
 | Launch at login | on      | Start automatically when you sign in                              |
-| Notify via      | popup   | Popup window (mirrored to the tray) or a tray notification only   |
+| Notify via      | popup   | Popup window, or a tray notification only (one channel, never both) |
 
 With the defaults, the upper channel warns at 80 % and only re-arms below 75 %;
 the lower channel warns at 20 % and only re-arms above 25 %.
@@ -102,8 +102,8 @@ Only one instance runs at a time. Launching a second copy hands a
 the charge level, a gauge marked with your limits, and three buttons: *Snooze*,
 *Settings* and *Dismiss*. Press `Esc` to dismiss. The window is shown without
 activating, so it will not pull focus away from a fullscreen application. A
-second warning updates the same window rather than stacking a new one, and every
-warning is mirrored to a tray notification so it is not missed if you are away.
+second warning updates the same window rather than stacking a new one. Settings
+**Notify via** chooses either this popup or a tray balloon, never both.
 
 ---
 

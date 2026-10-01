@@ -35,7 +35,7 @@ CARD_RADIUS = 6
 #: Human-readable captions for the ``notification_mode`` values.
 CHOICE_LABELS: dict[str, dict[str, str]] = {
     "notification_mode": {
-        "popup": "Popup window (mirrored to the tray)",
+        "popup": "Popup window",
         "tray": "Tray notification only",
     }
 }

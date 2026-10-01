@@ -153,8 +153,8 @@ FIELDS: tuple[FieldSpec, ...] = (
         default="popup",
         choices=("popup", "tray"),
         help_text=(
-            "Show an always-on-top popup window, or only a system tray "
-            "notification. Popups are always mirrored to the tray."
+            "Choose one: an always-on-top popup window, or a system tray "
+            "notification. Only the selected channel is used."
         ),
     ),
 )

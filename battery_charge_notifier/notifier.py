@@ -2,9 +2,8 @@
 
 The notifier owns exactly one :class:`~battery_charge_notifier.warning_window.WarningWindow`,
 so a second warning updates the window that is already on screen instead of
-stacking duplicates. Every warning is *also* mirrored to a tray balloon when a
-tray is available, so the message is not missed if the popup is dismissed or the
-user is away from the screen.
+stacking duplicates. :attr:`~battery_charge_notifier.app_config.AppConfig.notification_mode`
+chooses *either* the popup *or* a tray balloon, never both.
 """
 
 from __future__ import annotations
@@ -95,20 +94,10 @@ class Notifier(QObject):
             event: The warning to present.
         """
         content = self._viewmodel.show(event)
-
-        if self._config.notification_mode == "popup":
-            self._present_popup()
-        else:
-            # Tray-only mode still needs the balloon below.
-            logger.debug("Tray-only mode: skipping the popup for %s", event.kind.value)
-
-        self._show_balloon(content)
+        self._present(content)
 
     def present_test_warning(self, kind: WarningKind, percent: int) -> None:
-        """Show the popup for a synthetic warning, ignoring tray-only mode.
-
-        Used by the tray's "Test warnings" action, where the whole point is to
-        see what the popup looks like.
+        """Preview a warning using the same channel as a real one.
 
         Args:
             kind: Which warning to demonstrate.
@@ -117,7 +106,14 @@ class Notifier(QObject):
         content = self._viewmodel.show(
             WarningEvent(kind=kind, percent=percent, fired_at=time.monotonic())
         )
-        self._present_popup()
+        self._present(content)
+
+    def _present(self, content: WarningContent) -> None:
+        """Show *content* on the channel selected in settings."""
+        if self._config.notification_mode == "popup":
+            self._present_popup()
+            return
+        logger.debug("Tray-only mode: skipping the popup")
         self._show_balloon(content)
 
     def dismiss(self) -> None:

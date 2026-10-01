@@ -266,8 +266,13 @@ class TestNotifier:
         with qtbot.waitSignal(notifier.settingsRequested, timeout=1000):
             notifier.viewmodel.open_settings()
 
-    def test_test_warning_shows_a_popup_even_in_tray_mode(self, qtbot) -> None:
-        notifier = Notifier(AppConfig(notification_mode="tray"))
+    def test_test_warning_follows_popup_mode(self, qtbot) -> None:
+        notifier = Notifier(AppConfig(notification_mode="popup"))
         notifier.present_test_warning(WarningKind.LOWER, 9)
         assert notifier.is_popup_visible() is True
         notifier.dismiss()
+
+    def test_test_warning_follows_tray_mode(self, qtbot) -> None:
+        notifier = Notifier(AppConfig(notification_mode="tray"))
+        notifier.present_test_warning(WarningKind.LOWER, 9)
+        assert notifier.is_popup_visible() is False
