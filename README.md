@@ -249,6 +249,22 @@ inside the package would fail on its relative import - and the build would still
 succeed, producing an executable that crashes on startup.
 `tests/test_packaging.py` pins this down.
 
+The spec also prunes Qt. The PySide6 hook collects essentially every Qt library
+it finds, and `excludes` does not stop it: the libraries arrive as binaries, so
+the spec filters `Analysis.binaries` directly. Dropping the subsystems this
+application never loads - the software OpenGL rasteriser, QML/Qt Quick, PDF,
+SVG, the on-screen keyboard, OpenSSL and the Qt translation catalogues - takes
+the single-file build from about 47 MiB to about 24 MiB.
+
+Two rules keep that safe. Nothing may be pruned while something still links
+against it: CPython's `_ssl` and `_hashlib` extensions link against libcrypto and
+libssl, so those modules are excluded alongside the libraries. And the plugins
+that *are* required stay: `qwindows.dll` is the only platform plugin used, and
+`qico.dll` is what reads the `.ico` window icon (PNG is built into QtGui).
+`tools/verify_bundle.py` re-checks the whole dependency closure against a built
+executable, so a library pruned while still in use is reported rather than
+shipped.
+
 To watch the log output of a build, change `console=False` to `console=True` in
 the spec before building.
 

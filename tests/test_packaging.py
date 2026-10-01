@@ -98,6 +98,50 @@ class TestSpecContents:
             assert f'"{package}"' in spec_text
 
 
+class TestBundlePruning:
+    """The release build deliberately drops Qt subsystems the app never loads.
+
+    PyInstaller cannot be asked to leave them out through ``excludes`` alone -
+    the PySide6 hook collects the libraries as binaries - so the spec filters
+    ``Analysis.binaries``. These tests pin down both halves of the contract: the
+    heavy unused subsystems stay excluded, and the plugins and settings that are
+    genuinely required stay in.
+    """
+
+    HEAVY_UNUSED = (
+        "opengl32sw.dll",
+        "Qt6Qml.dll",
+        "Qt6Quick.dll",
+        "Qt6Pdf.dll",
+        "Qt6Svg.dll",
+        "libcrypto-3.dll",
+        "libssl-3.dll",
+    )
+
+    def test_heavy_unused_subsystems_are_pruned(self, spec_text: str) -> None:
+        for library in self.HEAVY_UNUSED:
+            assert f'"{library}"' in spec_text, f"{library} is no longer pruned"
+
+    def test_required_plugins_are_retained(self, spec_text: str) -> None:
+        # The .ico window icon needs the ICO image format, and Qt cannot start
+        # without a platform plugin.
+        assert '"qico.dll"' in spec_text
+        assert '"qwindows.dll"' in spec_text
+
+    def test_binaries_are_filtered(self, spec_text: str) -> None:
+        assert "a.binaries = prune_qt(a.binaries)" in spec_text
+
+    def test_openssl_dependants_are_excluded_with_it(self, spec_text: str) -> None:
+        """Pruning a DLL without pruning its dependants leaves a broken bundle.
+
+        CPython's ``_ssl`` and ``_hashlib`` extensions link against libcrypto and
+        libssl. Removing the libraries while those modules remain would produce an
+        executable that fails at import time, so they must be excluded together.
+        """
+        for module in ("ssl", "_ssl", "_hashlib"):
+            assert f'"{module}"' in spec_text, f"{module} must be excluded with OpenSSL"
+
+
 class TestBundledAssets:
     @pytest.mark.parametrize(
         "name",
