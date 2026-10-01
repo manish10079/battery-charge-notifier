@@ -186,16 +186,16 @@ class WarningWindow(QWidget):
 
     def show_at_bottom_right(self) -> None:
         """Show the window without activating it, near the notification area."""
-        screen = self.screen() or QApplication.primaryScreen()
+        self.adjustSize()
+        screen = QApplication.primaryScreen()
         if screen is not None:
             available = screen.availableGeometry()
-            self.adjustSize()
-            self.move(
-                available.right() - self.width() - SCREEN_MARGIN,
-                available.bottom() - self.height() - SCREEN_MARGIN,
-            )
+            x = available.right() - self.width() - SCREEN_MARGIN
+            y = available.bottom() - self.height() - SCREEN_MARGIN
+            self.move(max(available.left(), x), max(available.top(), y))
         self.show()
         self.raise_()
+        self.setWindowState(self.windowState() & ~Qt.WindowState.WindowMinimized)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802 - Qt signature
         """Close on ``Esc``."""

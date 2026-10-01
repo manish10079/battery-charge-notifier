@@ -111,10 +111,16 @@ class Notifier(QObject):
     def _present(self, content: WarningContent) -> None:
         """Show *content* on the channel selected in settings."""
         if self._config.notification_mode == "popup":
+            logger.info("Showing popup: %s", content.headline)
             self._present_popup()
             return
-        logger.debug("Tray-only mode: skipping the popup")
-        self._show_balloon(content)
+        if self._show_balloon(content):
+            logger.info("Showing tray notification: %s", content.headline)
+            return
+        logger.warning(
+            "Tray notifications are unavailable on this session; showing the popup instead"
+        )
+        self._present_popup()
 
     def dismiss(self) -> None:
         """Hide the popup if it is open."""
@@ -133,16 +139,21 @@ class Notifier(QObject):
                 self._window.apply_content(current)
         self._window.show_at_bottom_right()
 
-    def _show_balloon(self, content: WarningContent) -> None:
-        """Mirror the warning to a tray balloon, when a tray exists."""
+    def _show_balloon(self, content: WarningContent) -> bool:
+        """Show a tray balloon. Return whether the platform accepted it."""
         if self._tray_icon is None or not QSystemTrayIcon.isSystemTrayAvailable():
-            return
+            logger.warning("No system tray; cannot show a balloon")
+            return False
+        if not QSystemTrayIcon.supportsMessages():
+            logger.warning("This desktop does not support tray balloons")
+            return False
         icon = (
             QSystemTrayIcon.MessageIcon.Critical
             if content.action == "plug_in"
             else QSystemTrayIcon.MessageIcon.Information
         )
         self._tray_icon.showMessage(content.headline, content.detail, icon, BALLOON_TIMEOUT_MS)
+        return True
 
     def _on_snooze(self, kind: WarningKind) -> None:
         """Hide the popup and forward the snooze request."""

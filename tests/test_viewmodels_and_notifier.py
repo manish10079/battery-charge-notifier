@@ -230,10 +230,13 @@ class TestNotifier:
         assert notifier.is_popup_visible() is True
         notifier.dismiss()
 
-    def test_tray_only_mode_skips_the_popup(self, qtbot) -> None:
+    def test_tray_only_mode_falls_back_to_popup_without_a_tray(self, qtbot) -> None:
         notifier = Notifier(AppConfig(notification_mode="tray"))
         notifier.notify(WarningEvent(WarningKind.UPPER, 90, time.monotonic()))
-        assert notifier.is_popup_visible() is False
+        # Tests have no system tray, so the balloon cannot be shown and the
+        # popup is the fallback so the warning is never silent.
+        assert notifier.is_popup_visible() is True
+        notifier.dismiss()
 
     def test_repeated_warnings_reuse_one_window(self, qtbot) -> None:
         notifier = Notifier(AppConfig(notification_mode="popup"))
@@ -272,7 +275,8 @@ class TestNotifier:
         assert notifier.is_popup_visible() is True
         notifier.dismiss()
 
-    def test_test_warning_follows_tray_mode(self, qtbot) -> None:
+    def test_test_warning_falls_back_when_tray_is_missing(self, qtbot) -> None:
         notifier = Notifier(AppConfig(notification_mode="tray"))
         notifier.present_test_warning(WarningKind.LOWER, 9)
-        assert notifier.is_popup_visible() is False
+        assert notifier.is_popup_visible() is True
+        notifier.dismiss()
