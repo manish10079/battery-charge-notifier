@@ -1,4 +1,4 @@
-"""BatteryLimit - a background battery charging limiter.
+"""Battery Charge Notifier - a background battery charging limiter.
 
 The application watches the battery and *notifies* the user when a
 configurable charge threshold is crossed. It only ever reads battery status:

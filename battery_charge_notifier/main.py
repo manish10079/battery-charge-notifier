@@ -1,11 +1,11 @@
 """Entry point: application bootstrap and the single-instance gate.
 
-``python -m batterylimit`` and the ``batterylimit`` console script both land
+``python -m battery_charge_notifier`` and the ``battery_charge_notifier`` console script both land
 here. The sequence is:
 
 1. create the ``QApplication`` and pin the quit behaviour down
 2. claim the single-instance lock, or hand over to the instance that owns it
-3. build the object graph through :class:`~batterylimit.controller.AppController`
+3. build the object graph through :class:`~battery_charge_notifier.controller.AppController`
 4. start monitoring and run the event loop
 """
 
@@ -23,8 +23,8 @@ from .single_instance import COMMAND_SHOW_SETTINGS, SingleInstance
 
 logger = logging.getLogger(__name__)
 
-APP_NAME = "BatteryLimit"
-ORGANISATION_NAME = "BatteryLimit"
+APP_NAME = "Battery Charge Notifier"
+ORGANISATION_NAME = "Battery Charge Notifier"
 
 
 def configure_logging(verbose: bool = False) -> None:
@@ -50,10 +50,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         The parsed arguments.
     """
     parser = argparse.ArgumentParser(
-        prog="batterylimit",
+        prog="battery-charge-notifier",
         description=(
             "Watch the battery and remind you when to unplug or plug in the charger. "
-            "BatteryLimit only reads battery status and never controls charging."
+            "Battery Charge Notifier only reads battery status and never controls charging."
         ),
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -95,7 +95,7 @@ def create_application(argv: list[str]) -> QApplication:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Run BatteryLimit.
+    """Run Battery Charge Notifier.
 
     Args:
         argv: Argument list; defaults to ``sys.argv[1:]``.
@@ -111,7 +111,7 @@ def main(argv: list[str] | None = None) -> int:
     # Only one instance may own the tray icon and the monitor.
     gate = SingleInstance()
     if not gate.try_acquire():
-        logger.info("Another BatteryLimit instance is already running; handing over")
+        logger.info("Another Battery Charge Notifier instance is already running; handing over")
         gate.notify_running_instance(COMMAND_SHOW_SETTINGS)
         return 0
 

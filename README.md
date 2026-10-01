@@ -1,10 +1,10 @@
-# BatteryLimit
+# Battery Charge Notifier
 
 A small, cross-platform desktop utility that sits in your system tray and tells
 you when to **unplug** or **plug in** your charger, so your battery spends less
 time pinned at 100 % or flattened to 0 %.
 
-BatteryLimit is a **notification tool only**. It reads battery status and shows a
+Battery Charge Notifier is a **notification tool only**. It reads battery status and shows a
 popup. It never controls charging, never touches drivers or firmware, never needs
 administrator rights and makes no network calls.
 
@@ -62,14 +62,14 @@ pip install -e .
 ## Run
 
 ```console
-python -m batterylimit
+python -m battery_charge_notifier
 ```
 
 or, once installed, either of the console/graphical entry points:
 
 ```console
-batterylimit
-batterylimit-gui
+battery-charge-notifier
+battery-charge-notifier-gui
 ```
 
 ### Command line options
@@ -96,7 +96,7 @@ Only one instance runs at a time. Launching a second copy hands a
 | *Settings…*         | Open the settings dialog (also on a tray double-click)       |
 | *Test warnings ▸*   | Preview the upper or lower warning                           |
 | *Pause monitoring*  | Stop sampling without quitting                               |
-| *Quit BatteryLimit* | Exit                                                         |
+| *Quit Battery Charge Notifier* | Exit                                                         |
 
 **Warning popup** - a frameless, always-on-top card showing the required action,
 the charge level, a gauge marked with your limits, and three buttons: *Snooze*,
@@ -111,11 +111,11 @@ warning is mirrored to a tray notification so it is not missed if you are away.
 
 A single JSON file, written atomically:
 
-| Platform | Location                                                     |
-| -------- | ------------------------------------------------------------ |
-| Windows  | `%APPDATA%\BatteryLimit\config.json`                         |
-| macOS    | `~/Library/Application Support/BatteryLimit/config.json`      |
-| Linux    | `$XDG_CONFIG_HOME/batterylimit/config.json` (or `~/.config/...`) |
+| Platform | Location                                                                        |
+| -------- | ------------------------------------------------------------------------------- |
+| Windows  | `%APPDATA%\Battery Charge Notifier\config.json`                                  |
+| macOS    | `~/Library/Application Support/Battery Charge Notifier/config.json`               |
+| Linux    | `$XDG_CONFIG_HOME/battery-charge-notifier/config.json` (or `~/.config/...`)       |
 
 The file is validated on load. A hand-edited or corrupt file is repaired rather
 than fatal: unknown keys are ignored, out-of-range values are clamped, and a file
@@ -128,8 +128,8 @@ outright and explained inline, and the previous configuration is left untouched.
 | Platform | Mechanism                                            |
 | -------- | ---------------------------------------------------- |
 | Windows  | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` |
-| macOS    | `~/Library/LaunchAgents/com.batterylimit.plist`      |
-| Linux    | `$XDG_CONFIG_HOME/autostart/batterylimit.desktop`    |
+| macOS    | `~/Library/LaunchAgents/com.batterychargenotifier.plist`      |
+| Linux    | `$XDG_CONFIG_HOME/autostart/battery-charge-notifier.desktop`    |
 
 `--no-startup-sync` leaves all of this alone.
 
@@ -140,8 +140,8 @@ outright and explained inline, and the previous configuration is left untouched.
 ### Layout
 
 ```
-batterylimit/
-    __main__.py          python -m batterylimit
+battery_charge_notifier/
+    __main__.py          python -m battery_charge_notifier
     main.py              entry point, argument parsing, single-instance gate
     controller.py        dependency injection and signal wiring
     app_config.py        configuration schema, validation, atomic persistence
@@ -159,8 +159,8 @@ batterylimit/
     resources.py         loading the bundled icons
     assets/              generated icons (package data)
 packaging/
-    batterylimit.spec    PyInstaller build definition
-    launcher.py          frozen-build entry point
+    battery_charge_notifier.spec   PyInstaller build definition
+    launcher.py                    frozen-build entry point
 tools/
     generate_assets.py   regenerates the icons
 tests/
@@ -184,7 +184,7 @@ View  ──▶  ViewModel  ──▶  Service
 - **Services** are injected through `AppController`, so the whole application can
   be assembled against fakes. Nothing reaches for a global.
 
-**Colour discipline:** every colour is a named token in `batterylimit/colors.py`.
+**Colour discipline:** every colour is a named token in `battery_charge_notifier/colors.py`.
 `tests/test_design_tokens.py` fails the build if a colour literal appears
 anywhere else, so the rule is enforced rather than merely documented.
 
@@ -234,12 +234,14 @@ If your machine has no display, run headless with
 
 ```console
 pip install -e ".[dev]"
-pyinstaller packaging/batterylimit.spec
+pyinstaller packaging/battery_charge_notifier.spec
 ```
 
-The result is `dist/BatteryLimit.exe` (`dist/BatteryLimit` on macOS and Linux):
-one self-contained file, windowed rather than console, with the icons bundled
-inside it.
+The result is `dist/BatteryChargeNotifier.exe` (`dist/BatteryChargeNotifier` on
+macOS and Linux): one self-contained file, windowed rather than console, with the
+icons bundled inside it. The executable filename avoids spaces so it stays
+comfortable to launch from a shell; the name shown to users is "Battery Charge
+Notifier".
 
 `packaging/launcher.py` exists because PyInstaller runs its entry script as a
 top-level module named `__main__`, which has no parent package. An entry point
@@ -253,14 +255,14 @@ the spec before building.
 ### Adding a setting
 
 Adding a setting never requires touching the dialog. Add a `FieldSpec` to
-`FIELDS` in `batterylimit/app_config.py`; the schema drives validation, repair,
+`FIELDS` in `battery_charge_notifier/app_config.py`; the schema drives validation, repair,
 persistence and the generated controls.
 
 ---
 
 ## Scope
 
-BatteryLimit deliberately does **not** control charging. It does not touch charge
+Battery Charge Notifier deliberately does **not** control charging. It does not touch charge
 thresholds, drivers, firmware, ACPI or vendor tools, and it never needs
 administrator rights - it only reads the battery and tells you what to do. It
 also makes no network requests and collects no telemetry: the only files it

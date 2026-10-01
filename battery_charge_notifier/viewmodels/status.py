@@ -130,7 +130,7 @@ class StatusViewModel(QObject):
     @property
     def tooltip(self) -> str:
         """Multi-line tooltip for the tray icon."""
-        lines = ["BatteryLimit"]
+        lines = ["Battery Charge Notifier"]
         if not self.has_battery:
             lines.append("No battery detected on this machine.")
         else:

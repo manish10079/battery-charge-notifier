@@ -1,21 +1,21 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller build definition for BatteryLimit.
+"""PyInstaller build definition for Battery Charge Notifier.
 
 Produces a single-file, windowed executable with the application and tray icons
-bundled as package data under ``batterylimit/assets``, which is exactly where
-:mod:`batterylimit.resources` looks for them inside a frozen build.
+bundled as package data under ``battery_charge_notifier/assets``, which is exactly where
+:mod:`battery_charge_notifier.resources` looks for them inside a frozen build.
 
 Build with::
 
-    pyinstaller packaging/batterylimit.spec
+    pyinstaller packaging/battery_charge_notifier.spec
 
-The result is ``dist/BatteryLimit.exe`` (``BatteryLimit`` on macOS/Linux).
+The result is ``dist/Battery Charge Notifier.exe`` (``Battery Charge Notifier`` on macOS/Linux).
 """
 
 from pathlib import Path
 
 PROJECT_ROOT = Path(SPECPATH).parent
-ASSETS = PROJECT_ROOT / "batterylimit" / "assets"
+ASSETS = PROJECT_ROOT / "battery_charge_notifier" / "assets"
 ENTRY_POINT = PROJECT_ROOT / "packaging" / "launcher.py"
 
 # Qt is far larger than this application needs. Excluding the heavyweight
@@ -77,7 +77,7 @@ a = Analysis(  # noqa: F821 - injected by PyInstaller
     pathex=[str(PROJECT_ROOT)],
     binaries=[],
     # The icons are package data; they must be present at runtime.
-    datas=[(str(ASSETS), "batterylimit/assets")],
+    datas=[(str(ASSETS), "battery_charge_notifier/assets")],
     hiddenimports=["psutil"],
     hookspath=[],
     hooksconfig={},
@@ -95,7 +95,9 @@ exe = EXE(  # noqa: F821 - injected by PyInstaller
     a.binaries,
     a.datas,
     [],
-    name="BatteryLimit",
+    # The executable filename has no spaces so it stays comfortable to launch
+    # from a shell; the user-facing name is "Battery Charge Notifier".
+    name="BatteryChargeNotifier",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

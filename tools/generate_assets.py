@@ -2,10 +2,10 @@
 
 Run this once (``python tools/generate_assets.py``) after changing the icon
 design or the design tokens; the generated files under
-``batterylimit/assets/`` are committed and shipped as package data, so the
+``battery_charge_notifier/assets/`` are committed and shipped as package data, so the
 application never needs to draw its own icons at runtime.
 
-Every colour comes from :mod:`batterylimit.colors`, keeping the "one place for
+Every colour comes from :mod:`battery_charge_notifier.colors`, keeping the "one place for
 colour" rule intact even for generated art.
 """
 
@@ -32,9 +32,9 @@ from PySide6.QtGui import (  # noqa: E402
     QPen,
 )
 
-from batterylimit import colors  # noqa: E402
+from battery_charge_notifier import colors  # noqa: E402
 
-ASSETS = PROJECT_ROOT / "batterylimit" / "assets"
+ASSETS = PROJECT_ROOT / "battery_charge_notifier" / "assets"
 
 ICO_SIZES = (16, 24, 32, 48, 64, 128, 256)
 

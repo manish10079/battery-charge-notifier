@@ -22,7 +22,7 @@ COMMAND_PING = "ping"
 
 CONNECT_TIMEOUT_MS = 500
 PROBE_TIMEOUT_MS = 500
-SERVER_NAME_TEMPLATE = "batterylimit-{user}"
+SERVER_NAME_TEMPLATE = "battery-charge-notifier-{user}"
 
 
 def default_server_name() -> str:

@@ -13,8 +13,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from batterylimit.app_config import AppConfig  # noqa: E402
-from batterylimit.battery_service import BatteryState  # noqa: E402
+from battery_charge_notifier.app_config import AppConfig  # noqa: E402
+from battery_charge_notifier.battery_service import BatteryState  # noqa: E402
 
 
 class StubBatteryService:

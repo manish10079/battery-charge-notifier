@@ -1,9 +1,9 @@
 """The settings dialog - a schema-driven View.
 
-Every control is generated from :data:`~batterylimit.app_config.FIELDS`, so
+Every control is generated from :data:`~battery_charge_notifier.app_config.FIELDS`, so
 adding a setting never requires touching this file. The dialog contains no
 validation logic: it forwards edits to
-:class:`~batterylimit.viewmodels.settings.SettingsViewModel` and renders the
+:class:`~battery_charge_notifier.viewmodels.settings.SettingsViewModel` and renders the
 per-field messages that come back.
 
 There is no OK/Cancel pair: a valid edit is persisted - and therefore applied
@@ -57,7 +57,7 @@ class SettingsDialog(QDialog):
         self._editors: dict[str, QWidget] = {}
         self._errors: dict[str, QLabel] = {}
 
-        self.setWindowTitle("BatteryLimit settings")
+        self.setWindowTitle("Battery Charge Notifier settings")
         self.setWindowIcon(resources.load_icon(resources.APP_ICON))
         self.setModal(False)
         self.setMinimumWidth(DIALOG_WIDTH)
@@ -73,7 +73,7 @@ class SettingsDialog(QDialog):
     # -- construction ------------------------------------------------------
     def _build_ui(self) -> None:
         """Create the header, the generated fields and the footer."""
-        title = QLabel("BatteryLimit settings")
+        title = QLabel("Battery Charge Notifier settings")
         title.setObjectName("title")
 
         subtitle = QLabel(

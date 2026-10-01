@@ -1,10 +1,10 @@
 """ViewModel for the schema-driven settings dialog.
 
-The dialog renders one control per :class:`~batterylimit.app_config.FieldSpec`
+The dialog renders one control per :class:`~battery_charge_notifier.app_config.FieldSpec`
 and reports edits here. This ViewModel stages the edits, validates the *whole*
 resulting configuration on every keystroke, persists it when it is acceptable
 and reports per-field messages when it is not. Persisting goes through
-:class:`~batterylimit.app_config.ConfigManager`, so a valid change applies live
+:class:`~battery_charge_notifier.app_config.ConfigManager`, so a valid change applies live
 across the running application - no restart required.
 """
 

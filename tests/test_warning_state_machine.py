@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import pytest
 
-from batterylimit.battery_service import BatteryState
-from batterylimit.monitor import (
+from battery_charge_notifier.battery_service import BatteryState
+from battery_charge_notifier.monitor import (
     ChannelPhase,
     Thresholds,
     WarningKind,

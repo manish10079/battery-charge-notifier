@@ -1,6 +1,6 @@
 """Warning dispatch to the popup window and to tray notifications.
 
-The notifier owns exactly one :class:`~batterylimit.warning_window.WarningWindow`,
+The notifier owns exactly one :class:`~battery_charge_notifier.warning_window.WarningWindow`,
 so a second warning updates the window that is already on screen instead of
 stacking duplicates. Every warning is *also* mirrored to a tray balloon when a
 tray is available, so the message is not missed if the popup is dismissed or the

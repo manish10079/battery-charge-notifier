@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-PACKAGE_ROOT = Path(__file__).resolve().parents[1] / "batterylimit"
+PACKAGE_ROOT = Path(__file__).resolve().parents[1] / "battery_charge_notifier"
 COLORS_MODULE = PACKAGE_ROOT / "colors.py"
 
 #: A hex colour inside a string literal, e.g. ``"#0E1317"``.
@@ -48,7 +48,7 @@ class TestColourDiscipline:
 
 class TestTokenModule:
     def test_every_token_is_a_string(self) -> None:
-        from batterylimit import colors
+        from battery_charge_notifier import colors
 
         tokens = {
             name: value
@@ -61,7 +61,7 @@ class TestTokenModule:
             assert value.strip(), name
 
     def test_tokens_are_hex_rgba_or_keywords(self) -> None:
-        from batterylimit import colors
+        from battery_charge_notifier import colors
 
         for name, value in vars(colors).items():
             if not name.isupper() or name.startswith("_"):
@@ -74,7 +74,7 @@ class TestTokenModule:
             ), f"{name} = {value!r} is not a valid colour token"
 
     def test_action_helpers_cover_both_actions(self) -> None:
-        from batterylimit import colors
+        from battery_charge_notifier import colors
 
         assert colors.accent_for("unplug") == colors.ACCENT_UNPLUG
         assert colors.accent_for("plug_in") == colors.ACCENT_PLUG

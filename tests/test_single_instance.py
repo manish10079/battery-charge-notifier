@@ -6,7 +6,7 @@ import uuid
 
 import pytest
 
-from batterylimit.single_instance import (
+from battery_charge_notifier.single_instance import (
     COMMAND_SHOW_SETTINGS,
     SingleInstance,
     default_server_name,
@@ -16,7 +16,7 @@ from batterylimit.single_instance import (
 @pytest.fixture
 def socket_name() -> str:
     """A socket name unique to each test, so runs never collide."""
-    return f"batterylimit-test-{uuid.uuid4().hex}"
+    return f"battery-charge-notifier-test-{uuid.uuid4().hex}"
 
 
 @pytest.fixture
@@ -79,7 +79,7 @@ class TestHandover:
         qtbot.waitUntil(lambda: received == [COMMAND_SHOW_SETTINGS], timeout=3000)
 
     def test_notify_without_a_listener_reports_failure(self, qtbot, tracked) -> None:
-        gate = tracked(f"batterylimit-absent-{uuid.uuid4().hex}")
+        gate = tracked(f"battery_charge_notifier-absent-{uuid.uuid4().hex}")
         assert gate.notify_running_instance() is False
 
     def test_default_command_is_open_settings(self, qtbot, socket_name, tracked) -> None:
@@ -99,5 +99,5 @@ class TestHandover:
 class TestNaming:
     def test_server_name_is_per_user(self) -> None:
         name = default_server_name()
-        assert name.startswith("batterylimit-")
-        assert len(name) > len("batterylimit-")
+        assert name.startswith("battery-charge-notifier-")
+        assert len(name) > len("battery-charge-notifier-")

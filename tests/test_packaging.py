@@ -19,10 +19,10 @@ from pathlib import Path
 
 import pytest
 
-from batterylimit import resources
+from battery_charge_notifier import resources
 
 ROOT = Path(__file__).resolve().parents[1]
-SPEC = ROOT / "packaging" / "batterylimit.spec"
+SPEC = ROOT / "packaging" / "battery_charge_notifier.spec"
 LAUNCHER = ROOT / "packaging" / "launcher.py"
 PYPROJECT = ROOT / "pyproject.toml"
 
@@ -33,14 +33,14 @@ class TestFrozenEntryPoint:
 
     def test_launcher_uses_an_absolute_import(self) -> None:
         source = LAUNCHER.read_text(encoding="utf-8")
-        assert "from batterylimit.main import main" in source
+        assert "from battery_charge_notifier.main import main" in source
         # A relative import cannot resolve when run as a top-level script.
         assert "from . " not in source
         assert "from .main" not in source
 
     def test_launcher_is_not_inside_the_package(self) -> None:
         """The entry script must sit outside the package it imports."""
-        assert LAUNCHER.parent.name != "batterylimit"
+        assert LAUNCHER.parent.name != "battery_charge_notifier"
 
     def test_launcher_runs_as_a_top_level_script(self) -> None:
         """Simulates exactly how PyInstaller invokes the entry point."""
@@ -52,7 +52,7 @@ class TestFrozenEntryPoint:
             timeout=120,
         )
         assert result.returncode == 0, result.stderr
-        assert "batterylimit" in result.stdout.lower()
+        assert "battery-charge-notifier" in result.stdout.lower()
 
     def test_spec_builds_the_launcher_not_the_package_dunder_main(self) -> None:
         spec = SPEC.read_text(encoding="utf-8")
@@ -60,16 +60,16 @@ class TestFrozenEntryPoint:
         assert "__main__.py" not in spec
 
     def test_package_dunder_main_still_supports_module_execution(self) -> None:
-        """``python -m batterylimit`` must keep working for source installs."""
+        """``python -m battery_charge_notifier`` must keep working for source installs."""
         result = subprocess.run(
-            [sys.executable, "-m", "batterylimit", "--version"],
+            [sys.executable, "-m", "battery_charge_notifier", "--version"],
             capture_output=True,
             text=True,
             cwd=str(ROOT),
             timeout=120,
         )
         assert result.returncode == 0, result.stderr
-        assert "batterylimit" in result.stdout.lower()
+        assert "battery-charge-notifier" in result.stdout.lower()
 
 
 @pytest.fixture(scope="module")
@@ -80,7 +80,7 @@ def spec_text() -> str:
 
 class TestSpecContents:
     def test_bundles_the_assets_as_package_data(self, spec_text: str) -> None:
-        assert 'datas=[(str(ASSETS), "batterylimit/assets")]' in spec_text
+        assert 'datas=[(str(ASSETS), "battery_charge_notifier/assets")]' in spec_text
 
     def test_produces_a_single_file(self, spec_text: str) -> None:
         # A spec that produces a single file has no COLLECT step.
@@ -119,14 +119,22 @@ class TestBundledAssets:
     def test_assets_are_shipped_as_package_data(self) -> None:
         config = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
         package_data = config["tool"]["setuptools"]["package-data"]
-        assert package_data["batterylimit"] == ["assets/*"]
+        assert package_data["battery_charge_notifier"] == ["assets/*"]
 
     def test_package_discovery_includes_the_subpackages(self) -> None:
         config = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
         include = config["tool"]["setuptools"]["packages"]["find"]["include"]
-        assert "batterylimit*" in include
+        assert "battery_charge_notifier*" in include
 
     def test_console_and_gui_entry_points_are_declared(self) -> None:
         config = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
-        assert config["project"]["scripts"]["batterylimit"] == "batterylimit.main:main"
-        assert config["project"]["gui-scripts"]["batterylimit-gui"] == "batterylimit.main:main"
+        console = config["project"]["scripts"]
+        gui = config["project"]["gui-scripts"]
+        # The distribution and command names are kebab-case; only the importable
+        # package uses snake_case.
+        assert console["battery-charge-notifier"] == "battery_charge_notifier.main:main"
+        assert gui["battery-charge-notifier-gui"] == "battery_charge_notifier.main:main"
+
+    def test_distribution_name_is_kebab_case(self) -> None:
+        config = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
+        assert config["project"]["name"] == "battery-charge-notifier"

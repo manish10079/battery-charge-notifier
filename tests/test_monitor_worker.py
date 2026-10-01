@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from batterylimit.app_config import AppConfig
-from batterylimit.battery_service import BatteryState
-from batterylimit.monitor import BatteryMonitor, BatteryPollWorker, WarningKind
+from battery_charge_notifier.app_config import AppConfig
+from battery_charge_notifier.battery_service import BatteryState
+from battery_charge_notifier.monitor import BatteryMonitor, BatteryPollWorker, WarningKind
 
 from conftest import StubBatteryService
 

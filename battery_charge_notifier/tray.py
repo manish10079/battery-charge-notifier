@@ -3,7 +3,7 @@
 The tray exposes the live status line, the settings dialog, a pause switch, a
 way to preview the warnings and a quit action. Like every other View it holds no
 business logic: the caption, tooltip and icon are computed by
-:class:`~batterylimit.viewmodels.status.StatusViewModel`, and every command is
+:class:`~battery_charge_notifier.viewmodels.status.StatusViewModel`, and every command is
 reported as a signal for the controller to act on.
 """
 
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class TrayIcon(QObject):
-    """A ``QSystemTrayIcon`` with BatteryLimit's menu."""
+    """A ``QSystemTrayIcon`` with Battery Charge Notifier's menu."""
 
     #: Emitted when the user opens the settings dialog.
     settingsRequested = Signal()
@@ -129,7 +129,7 @@ class TrayIcon(QObject):
 
         menu.addSeparator()
 
-        quit_action = menu.addAction("Quit BatteryLimit")
+        quit_action = menu.addAction("Quit Battery Charge Notifier")
         quit_action.triggered.connect(self.quitRequested)
 
         return menu

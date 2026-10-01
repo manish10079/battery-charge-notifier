@@ -1,4 +1,4 @@
-"""Design tokens for BatteryLimit.
+"""Design tokens for Battery Charge Notifier.
 
 This module is the **only** place in the codebase where a colour literal may
 appear. Every widget, style sheet and generated icon pulls its colours from

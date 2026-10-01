@@ -1,6 +1,6 @@
 """ViewModel for the warning popup.
 
-Converts a :class:`~batterylimit.monitor.WarningEvent` into display-ready text
+Converts a :class:`~battery_charge_notifier.monitor.WarningEvent` into display-ready text
 and exposes the three user actions (snooze, settings, dismiss) as signals. The
 window itself contains no formatting or decision logic.
 """

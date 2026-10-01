@@ -13,17 +13,17 @@ from pathlib import Path
 import pytest
 from PySide6.QtWidgets import QLabel
 
-from batterylimit.app_config import AppConfig, ConfigManager
-from batterylimit.controller import AppController
-from batterylimit.monitor import WarningKind
-from batterylimit.startup import NoopStartupService
+from battery_charge_notifier.app_config import AppConfig, ConfigManager
+from battery_charge_notifier.controller import AppController
+from battery_charge_notifier.monitor import WarningKind
+from battery_charge_notifier.startup import NoopStartupService
 
 from conftest import StubBatteryService
 
 
 def make_state(percent: int, plugged: bool):
     """Build a synthetic battery state."""
-    from batterylimit.battery_service import BatteryState
+    from battery_charge_notifier.battery_service import BatteryState
 
     return BatteryState(
         percent=percent,
@@ -72,7 +72,7 @@ class TestBoot:
         assert "55%" in controller.status_viewmodel.caption
 
     def test_boots_on_a_machine_without_a_battery(self, qtbot, build_app) -> None:
-        from batterylimit.battery_service import BatteryState
+        from battery_charge_notifier.battery_service import BatteryState
 
         controller, _manager, _service = build_app(BatteryState.absent())
 
@@ -89,7 +89,7 @@ class TestBoot:
             controller.start()
 
         assert "42%" in controller.tray.status_text
-        assert controller.tray.tooltip_text.startswith("BatteryLimit")
+        assert controller.tray.tooltip_text.startswith("Battery Charge Notifier")
         assert controller.tray.is_paused is False
 
 

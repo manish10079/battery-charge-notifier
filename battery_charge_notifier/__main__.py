@@ -1,4 +1,4 @@
-"""Allows ``python -m batterylimit`` to start the application."""
+"""Allows ``python -m battery_charge_notifier`` to start the application."""
 
 from __future__ import annotations
 

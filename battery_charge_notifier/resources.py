@@ -1,7 +1,7 @@
 """Access to the icons bundled as package data.
 
 Both the source checkout and the PyInstaller bundle are supported: frozen builds
-unpack ``batterylimit/assets`` under ``sys._MEIPASS``, while a normal install
+unpack ``battery_charge_notifier/assets`` under ``sys._MEIPASS``, while a normal install
 reads it next to this module.
 """
 
@@ -16,7 +16,7 @@ from PySide6.QtGui import QIcon, QPixmap
 logger = logging.getLogger(__name__)
 
 ASSET_DIRNAME = "assets"
-PACKAGE_DIRNAME = "batterylimit"
+PACKAGE_DIRNAME = "battery_charge_notifier"
 
 #: Application icon used for windows and the executable.
 APP_ICON = "app.ico"

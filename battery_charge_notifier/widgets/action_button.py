@@ -1,6 +1,6 @@
 """A themed push button.
 
-All colours come from :mod:`batterylimit.colors`; the widget never hardcodes a
+All colours come from :mod:`battery_charge_notifier.colors`; the widget never hardcodes a
 value. The ``ACCENT`` role re-tints itself from the warning action, so the
 popup's accent colour and its primary button always agree.
 """

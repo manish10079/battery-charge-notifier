@@ -2,7 +2,7 @@
 
 This is the only module that knows about every other one. It constructs the
 services, injects them into the ViewModels, connects the signals and exposes a
-handful of commands for :mod:`batterylimit.main` and the tests to drive.
+handful of commands for :mod:`battery_charge_notifier.main` and the tests to drive.
 
 Keeping the composition here means the widgets, the ViewModels and the services
 all stay independently testable: nothing reaches out for a global.
@@ -136,7 +136,7 @@ class AppController(QObject):
             self._reconcile_startup(self._config.launch_at_startup)
         self._tray.show()
         self._monitor.start()
-        logger.info("BatteryLimit started (limits %s/%s)", self._config.upper_limit, self._config.lower_limit)
+        logger.info("Battery Charge Notifier started (limits %s/%s)", self._config.upper_limit, self._config.lower_limit)
 
     def shutdown(self) -> None:
         """Stop monitoring and release the single-instance lock."""

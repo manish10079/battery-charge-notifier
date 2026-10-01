@@ -1,4 +1,4 @@
-# BatteryLimit runtime dependencies.
+# Battery Charge Notifier runtime dependencies.
 # The application itself only needs the Qt6 bindings and a portable battery reader.
 PySide6>=6.8
 psutil>=5.9

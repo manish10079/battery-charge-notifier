@@ -1,6 +1,6 @@
 """The warning popup - a pure View.
 
-The window renders exactly what :class:`~batterylimit.viewmodels.warning.WarningViewModel`
+The window renders exactly what :class:`~battery_charge_notifier.viewmodels.warning.WarningViewModel`
 gives it and reports button presses back as ViewModel calls. It holds no state of
 its own beyond the widgets, and it never inspects the battery or the
 configuration.
@@ -51,7 +51,7 @@ class WarningWindow(QWidget):
         super().__init__(parent)
         self._viewmodel = viewmodel
 
-        self.setWindowTitle("BatteryLimit")
+        self.setWindowTitle("Battery Charge Notifier")
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint
             | Qt.WindowType.WindowStaysOnTopHint

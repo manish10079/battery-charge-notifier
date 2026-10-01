@@ -6,8 +6,8 @@ per-user: no implementation requires administrator rights, and the Windows
 implementation only ever touches ``HKCU``.
 
 * Windows - ``HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run``
-* macOS - ``~/Library/LaunchAgents/com.batterylimit.plist``
-* Linux/BSD - ``$XDG_CONFIG_HOME/autostart/batterylimit.desktop``
+* macOS - ``~/Library/LaunchAgents/com.batterychargenotifier.plist``
+* Linux/BSD - ``$XDG_CONFIG_HOME/autostart/battery-charge-notifier.desktop``
 """
 
 from __future__ import annotations
@@ -21,24 +21,24 @@ from typing import Protocol, runtime_checkable
 
 logger = logging.getLogger(__name__)
 
-APP_NAME = "BatteryLimit"
+APP_NAME = "Battery Charge Notifier"
 WINDOWS_RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 WINDOWS_VALUE_NAME = APP_NAME
-MACOS_LABEL = "com.batterylimit"
-LINUX_DESKTOP_FILE = "batterylimit.desktop"
+MACOS_LABEL = "com.batterychargenotifier"
+LINUX_DESKTOP_FILE = "battery-charge-notifier.desktop"
 
 
 def _launch_command() -> str:
     """Return the command that starts the application in the background.
 
-    Uses the interpreter and the module path rather than the ``batterylimit``
+    Uses the interpreter and the module path rather than the ``battery_charge_notifier``
     console script, which is not guaranteed to be on ``PATH`` in every
     environment (notably a virtual environment launched from the desktop).
     """
     if getattr(sys, "frozen", False):
         # A PyInstaller build is its own executable.
         return f'"{sys.executable}"'
-    return f'"{sys.executable}" -m batterylimit'
+    return f'"{sys.executable}" -m battery_charge_notifier'
 
 
 @runtime_checkable

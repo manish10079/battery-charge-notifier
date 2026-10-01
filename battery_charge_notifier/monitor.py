@@ -449,7 +449,7 @@ class BatteryMonitor(QObject):
         self._latest: BatteryState | None = None
 
         self._thread = QThread()
-        self._thread.setObjectName("BatteryLimitMonitor")
+        self._thread.setObjectName("Battery Charge NotifierMonitor")
         self._worker = BatteryPollWorker(service, self._config)
         self._worker.moveToThread(self._thread)
 

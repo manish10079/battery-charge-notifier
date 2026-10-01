@@ -13,8 +13,8 @@ from pathlib import Path
 
 import pytest
 
-from batterylimit import startup
-from batterylimit.startup import (
+from battery_charge_notifier import startup
+from battery_charge_notifier.startup import (
     LinuxStartupService,
     MacOSStartupService,
     NoopStartupService,
@@ -99,7 +99,7 @@ class TestWindowsStartupService:
     def test_command_invokes_the_module(self, fake_winreg: FakeWinreg) -> None:
         WindowsStartupService().set_enabled(True)
         command = fake_winreg.values[(RUN_KEY, startup.WINDOWS_VALUE_NAME)]
-        assert "batterylimit" in command
+        assert "battery_charge_notifier" in command
         assert sys.executable in command
 
     def test_disabling_removes_the_value(self, fake_winreg: FakeWinreg) -> None:
@@ -129,7 +129,7 @@ class TestMacOSStartupService:
         assert service.set_enabled(True) is True
         assert service.path.is_file()
         assert service.path.parent.name == "LaunchAgents"
-        assert b"com.batterylimit" in service.path.read_bytes()
+        assert b"com.batterychargenotifier" in service.path.read_bytes()
 
     def test_plist_contains_absolute_paths(self, tmp_path: Path, monkeypatch) -> None:
         import plistlib
@@ -157,7 +157,7 @@ class TestLinuxStartupService:
         assert service.is_enabled() is False
 
         assert service.set_enabled(True) is True
-        assert service.path == tmp_path / "autostart" / "batterylimit.desktop"
+        assert service.path == tmp_path / "autostart" / "battery-charge-notifier.desktop"
 
         contents = service.path.read_text(encoding="utf-8")
         assert contents.startswith("[Desktop Entry]")

@@ -1,4 +1,4 @@
-"""Configuration schema, validation and persistence for BatteryLimit.
+"""Configuration schema, validation and persistence for Battery Charge Notifier.
 
 The configuration is *schema driven*: :data:`FIELDS` is the single source of
 truth that the settings dialog uses to build its controls, that
@@ -8,10 +8,10 @@ suite uses to exercise validation. Adding a setting therefore means adding one
 
 Storage location follows each platform's convention:
 
-* Windows - ``%APPDATA%/BatteryLimit/config.json``
-* macOS - ``~/Library/Application Support/BatteryLimit/config.json``
-* Linux/BSD - ``$XDG_CONFIG_HOME/batterylimit/config.json``
-  (falling back to ``~/.config/batterylimit/config.json``)
+* Windows - ``%APPDATA%/Battery Charge Notifier/config.json``
+* macOS - ``~/Library/Application Support/Battery Charge Notifier/config.json``
+* Linux/BSD - ``$XDG_CONFIG_HOME/battery-charge-notifier/config.json``
+  (falling back to ``~/.config/battery-charge-notifier/config.json``)
 
 Writes are atomic (temp file + :func:`os.replace`) so a crash mid-save can
 never leave a truncated configuration behind.
@@ -29,7 +29,9 @@ from typing import Any, Literal, Mapping
 
 from PySide6.QtCore import QObject, Signal
 
-APP_NAME = "BatteryLimit"
+APP_NAME = "Battery Charge Notifier"
+#: Lowercase, space-free identifier for paths and keys that must stay portable.
+APP_SLUG = "battery-charge-notifier"
 CONFIG_FILENAME = "config.json"
 
 NotificationMode = Literal["popup", "tray"]
@@ -142,7 +144,7 @@ FIELDS: tuple[FieldSpec, ...] = (
         label="Launch at login",
         kind="bool",
         default=True,
-        help_text="Start BatteryLimit automatically when you sign in.",
+        help_text="Start Battery Charge Notifier automatically when you sign in.",
     ),
     FieldSpec(
         key="notification_mode",
@@ -416,11 +418,16 @@ def _clamp(spec: FieldSpec, value: Any) -> Any:
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-def default_config_dir(app_name: str = APP_NAME) -> Path:
-    """Return the per-platform directory that holds BatteryLimit's data.
+def default_config_dir(app_name: str = APP_NAME, app_slug: str = APP_SLUG) -> Path:
+    """Return the per-platform directory that holds Battery Charge Notifier's data.
+
+    Windows and macOS follow their convention of a title-cased folder named after
+    the product, while Linux follows the freedesktop convention of a lowercase,
+    space-free identifier.
 
     Args:
-        app_name: Directory name to use under the platform's config root.
+        app_name: Directory name to use on Windows and macOS.
+        app_slug: Directory name to use on Linux and BSD.
 
     Returns:
         The configuration directory. It is not created by this function.
@@ -433,7 +440,7 @@ def default_config_dir(app_name: str = APP_NAME) -> Path:
         return Path.home() / "Library" / "Application Support" / app_name
     root = os.environ.get("XDG_CONFIG_HOME")
     base = Path(root) if root else Path.home() / ".config"
-    return base / app_name.lower()
+    return base / app_slug
 
 
 def default_config_path(app_name: str = APP_NAME) -> Path:

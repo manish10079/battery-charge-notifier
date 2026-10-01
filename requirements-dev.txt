@@ -1,4 +1,4 @@
-# BatteryLimit development / test / packaging dependencies.
+# Battery Charge Notifier development / test / packaging dependencies.
 -r requirements.txt
 
 pytest>=8.0

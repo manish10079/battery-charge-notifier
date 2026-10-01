@@ -7,13 +7,13 @@ from pathlib import Path
 
 import pytest
 
-from batterylimit.app_config import AppConfig, ConfigManager
-from batterylimit.battery_service import BatteryState
-from batterylimit.monitor import WarningEvent, WarningKind
-from batterylimit.notifier import Notifier
-from batterylimit.viewmodels.settings import SettingsViewModel
-from batterylimit.viewmodels.status import StatusViewModel, format_duration
-from batterylimit.viewmodels.warning import WarningViewModel
+from battery_charge_notifier.app_config import AppConfig, ConfigManager
+from battery_charge_notifier.battery_service import BatteryState
+from battery_charge_notifier.monitor import WarningEvent, WarningKind
+from battery_charge_notifier.notifier import Notifier
+from battery_charge_notifier.viewmodels.settings import SettingsViewModel
+from battery_charge_notifier.viewmodels.status import StatusViewModel, format_duration
+from battery_charge_notifier.viewmodels.warning import WarningViewModel
 
 
 def plugged(percent: int) -> BatteryState:

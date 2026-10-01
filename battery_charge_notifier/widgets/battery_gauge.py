@@ -2,7 +2,7 @@
 
 The widget is purely a renderer. It is told the charge level, the accent to use
 and where the configured limits sit, and it paints accordingly - it never sees a
-:class:`~batterylimit.battery_service.BatteryState` or an ``AppConfig``.
+:class:`~battery_charge_notifier.battery_service.BatteryState` or an ``AppConfig``.
 """
 
 from __future__ import annotations
