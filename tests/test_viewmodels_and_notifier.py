@@ -301,3 +301,21 @@ class TestNotifier:
         notifier.present_test_warning(WarningKind.LOWER, 9)
         assert notifier.is_popup_visible() is True
         notifier.dismiss()
+
+    def test_plug_in_warning_auto_dismisses_when_charger_connects(self, qtbot) -> None:
+        notifier = Notifier(AppConfig(notification_mode="popup", popup_timeout_seconds=0))
+        notifier.notify(WarningEvent(WarningKind.LOWER, 15, time.monotonic()))
+        assert notifier.is_popup_visible() is True
+        notifier.observe_battery(unplugged(15))
+        assert notifier.is_popup_visible() is True
+        notifier.observe_battery(plugged(16))
+        assert notifier.is_popup_visible() is False
+
+    def test_unplug_warning_auto_dismisses_when_charger_disconnects(self, qtbot) -> None:
+        notifier = Notifier(AppConfig(notification_mode="popup", popup_timeout_seconds=0))
+        notifier.notify(WarningEvent(WarningKind.UPPER, 90, time.monotonic()))
+        assert notifier.is_popup_visible() is True
+        notifier.observe_battery(plugged(90))
+        assert notifier.is_popup_visible() is True
+        notifier.observe_battery(unplugged(89))
+        assert notifier.is_popup_visible() is False

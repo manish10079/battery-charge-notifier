@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import QApplication
 
 from . import colors
@@ -28,6 +28,9 @@ from .viewmodels.settings import SettingsViewModel
 from .viewmodels.status import StatusViewModel
 
 logger = logging.getLogger(__name__)
+
+#: How often to re-sample the charger while a warning popup is on screen.
+ACTION_WATCH_INTERVAL_MS = 100
 
 
 class AppController(QObject):
@@ -88,6 +91,10 @@ class AppController(QObject):
 
         self._settings_dialog: SettingsDialog | None = None
 
+        self._action_watch = QTimer(self)
+        self._action_watch.setInterval(ACTION_WATCH_INTERVAL_MS)
+        self._action_watch.timeout.connect(self._monitor.force_poll)
+
         self._connect()
 
     # -- accessors (used by tests and by main) -----------------------------
@@ -142,6 +149,7 @@ class AppController(QObject):
 
     def shutdown(self) -> None:
         """Stop monitoring and release the single-instance lock."""
+        self._action_watch.stop()
         self._monitor.stop()
         self._tray.hide()
         if self._single_instance is not None:
@@ -163,6 +171,7 @@ class AppController(QObject):
             kind: Which warning to demonstrate.
         """
         self._notifier.present_test_warning(kind, self._preview_percent(kind))
+        self._start_action_watch()
 
     def set_monitoring_enabled(self, enabled: bool) -> None:
         """Pause or resume monitoring.
@@ -180,7 +189,7 @@ class AppController(QObject):
     def _connect(self) -> None:
         """Connect every signal in the graph."""
         self._monitor.batteryUpdated.connect(self._on_battery_updated)
-        self._monitor.warningRaised.connect(self._notifier.notify)
+        self._monitor.warningRaised.connect(self._on_warning_raised)
 
         self._notifier.snoozeRequested.connect(self._on_snooze)
         self._notifier.settingsRequested.connect(self.open_settings)
@@ -195,9 +204,22 @@ class AppController(QObject):
         if self._single_instance is not None:
             self._single_instance.messageReceived.connect(self._on_instance_message)
 
+    def _on_warning_raised(self, event) -> None:
+        """Show the warning and watch the charger so it can auto-dismiss."""
+        self._notifier.notify(event)
+        self._start_action_watch()
+
+    def _start_action_watch(self) -> None:
+        """Poll about every 100 ms while a warning popup is visible."""
+        if self._notifier.is_popup_visible() and not self._action_watch.isActive():
+            self._action_watch.start()
+
     def _on_battery_updated(self, state: BatteryState) -> None:
-        """Feed a fresh sample to the tray status."""
+        """Feed a fresh sample to the tray status and auto-dismiss if needed."""
         self._status_viewmodel.update_battery(state)
+        self._notifier.observe_battery(state)
+        if not self._notifier.is_popup_visible():
+            self._action_watch.stop()
 
     def _on_snooze(self, kind: WarningKind) -> None:
         """Forward a snooze request to the background worker."""

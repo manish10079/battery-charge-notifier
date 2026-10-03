@@ -165,7 +165,7 @@ class TrayIcon(QObject):
 
         menu.addSeparator()
 
-        version = menu.addAction(f"Version {__version__}")
+        version = menu.addAction(f"Version {__version__}  by Mkn Labs")
         version.setEnabled(False)
 
         quit_action = menu.addAction("Quit Battery Charge Notifier")

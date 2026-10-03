@@ -153,6 +153,19 @@ class TestUpperWarningAcceptance:
         assert blocker.args[0].kind is WarningKind.LOWER
         assert blocker.args[0].message == "Battery at 8% \u2014 plug in the charger."
 
+    def test_unplug_warning_dismisses_when_charger_is_removed(
+        self, qtbot, build_app
+    ) -> None:
+        controller, _manager, service = build_app(
+            make_state(95, plugged=True), upper_limit=80, lower_limit=20
+        )
+        controller.start()
+        qtbot.waitUntil(lambda: controller.notifier.is_popup_visible(), timeout=5000)
+
+        service.states = [make_state(95, plugged=False)]
+        controller.monitor.force_poll()
+        qtbot.waitUntil(lambda: not controller.notifier.is_popup_visible(), timeout=5000)
+
 
 class TestLiveConfiguration:
     def test_settings_change_applies_without_restart(self, qtbot, build_app) -> None:

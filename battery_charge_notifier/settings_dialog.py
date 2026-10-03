@@ -46,6 +46,17 @@ CHOICE_LABELS: dict[str, dict[str, str]] = {
     },
 }
 
+class _NoScrollSpinBox(QSpinBox):
+    """A spin box whose value is not changed by the mouse wheel.
+
+    Wheel events are ignored so they reach the settings scroller instead of
+    nudging limits while the user is scrolling the dialog.
+    """
+
+    def wheelEvent(self, event) -> None:  # noqa: N802 - Qt override
+        event.ignore()
+
+
 #: Fields split evenly across two columns, in schema order.
 LEFT_KEYS = (
     "upper_limit",
@@ -76,7 +87,7 @@ class SettingsDialog(QDialog):
         self._errors: dict[str, QLabel] = {}
         self._cards: dict[str, QFrame] = {}
 
-        self.setWindowTitle("Battery Charge Notifier settings")
+        self.setWindowTitle("Battery Charge Notifier")
         self.setWindowIcon(resources.load_icon(resources.APP_ICON))
         self.setModal(False)
         self.setMinimumSize(360, 280)
@@ -100,7 +111,7 @@ class SettingsDialog(QDialog):
 
     def _build_ui(self) -> None:
         """Create the header, the two-column cards and the footer."""
-        title = QLabel("Battery Charge Notifier settings")
+        title = QLabel("Battery Charge Notifier")
         title.setObjectName("title")
 
         subtitle = QLabel(
@@ -147,7 +158,7 @@ class SettingsDialog(QDialog):
         restore.clicked.connect(self._viewmodel.reset_to_defaults)
         close.clicked.connect(self.accept)
 
-        version = QLabel(f"Version {__version__}")
+        version = QLabel(f"Version {__version__}  by Mkn Labs")
         version.setObjectName("versionLabel")
         version.setToolTip("major.minor.patch")
 
@@ -221,7 +232,7 @@ class SettingsDialog(QDialog):
     def _build_editor(self, spec: FieldSpec) -> QWidget:
         """Create the input control matching the field's kind."""
         if spec.kind == "int":
-            spin = QSpinBox()
+            spin = _NoScrollSpinBox()
             spin.setRange(spec.minimum or 0, spec.maximum or 100)
             spin.setSuffix(spec.suffix)
             spin.setSingleStep(1)

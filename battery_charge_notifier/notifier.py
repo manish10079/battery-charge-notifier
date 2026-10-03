@@ -15,6 +15,7 @@ from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import QSystemTrayIcon
 
 from .app_config import AppConfig
+from .battery_service import BatteryState
 from .monitor import WarningEvent, WarningKind
 from .viewmodels.warning import WarningContent, WarningViewModel
 from .warning_window import WarningWindow
@@ -137,6 +138,29 @@ class Notifier(QObject):
             "Tray notifications are unavailable on this session; showing the popup instead"
         )
         self._present_popup()
+
+    def observe_battery(self, state: BatteryState) -> None:
+        """Hide the warning once the user takes the requested charger action.
+
+        A plug-in warning closes itself when AC is connected. An unplug warning
+        closes itself when the charger is removed. If the charger state does
+        not change, the popup stays until the user dismisses it.
+
+        Args:
+            state: The latest battery sample.
+        """
+        if not self.is_popup_visible():
+            return
+        content = self._viewmodel.content
+        if content is None:
+            return
+        if content.action == "plug_in" and state.plugged:
+            logger.info("Charger plugged in; auto-dismissing plug-in warning")
+            self.dismiss()
+            return
+        if content.action == "unplug" and not state.plugged:
+            logger.info("Charger unplugged; auto-dismissing unplug warning")
+            self.dismiss()
 
     def dismiss(self) -> None:
         """Slide the popup out, then hide it."""
