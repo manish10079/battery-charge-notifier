@@ -38,5 +38,5 @@ class StubBatteryService:
 
 @pytest.fixture
 def default_config() -> AppConfig:
-    """Factory-default configuration (upper 80, lower 20, re-arm gap 5)."""
+    """Factory-default configuration (upper 80, lower 20)."""
     return AppConfig()

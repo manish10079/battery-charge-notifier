@@ -30,7 +30,7 @@ from .viewmodels.status import StatusViewModel
 logger = logging.getLogger(__name__)
 
 #: How often to re-sample the charger while a warning popup is on screen.
-ACTION_WATCH_INTERVAL_MS = 100
+ACTION_WATCH_INTERVAL_MS = 500
 
 
 class AppController(QObject):
@@ -210,7 +210,7 @@ class AppController(QObject):
         self._start_action_watch()
 
     def _start_action_watch(self) -> None:
-        """Poll about every 100 ms while a warning popup is visible."""
+        """Poll about every 500 ms while a warning popup is visible."""
         if self._notifier.is_popup_visible() and not self._action_watch.isActive():
             self._action_watch.start()
 

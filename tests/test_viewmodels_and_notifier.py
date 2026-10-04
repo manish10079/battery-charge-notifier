@@ -218,6 +218,7 @@ class TestSettingsViewModel:
         keys = [spec.key for spec in viewmodel.fields]
         assert keys[0] == "upper_limit"
         assert "notification_mode" in keys
+        assert "sound_enabled" in keys
 
 
 # ---------------------------------------------------------------------------
@@ -310,6 +311,18 @@ class TestNotifier:
         assert notifier.is_popup_visible() is True
         notifier.observe_battery(plugged(16))
         assert notifier.is_popup_visible() is False
+
+    def test_sound_disabled_does_not_start_the_tone(self, qtbot) -> None:
+        notifier = Notifier(AppConfig(notification_mode="popup", sound_enabled=False))
+        notifier.notify(WarningEvent(WarningKind.UPPER, 90, time.monotonic()))
+        assert notifier._tone.is_playing() is False  # noqa: SLF001
+        notifier.dismiss()
+
+    def test_dismiss_stops_the_warning_tone(self, qtbot) -> None:
+        notifier = Notifier(AppConfig(notification_mode="popup", sound_enabled=True))
+        notifier.notify(WarningEvent(WarningKind.UPPER, 90, time.monotonic()))
+        notifier.dismiss()
+        assert notifier._tone.is_playing() is False  # noqa: SLF001
 
     def test_unplug_warning_auto_dismisses_when_charger_disconnects(self, qtbot) -> None:
         notifier = Notifier(AppConfig(notification_mode="popup", popup_timeout_seconds=0))

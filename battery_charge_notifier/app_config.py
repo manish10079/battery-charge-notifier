@@ -101,19 +101,6 @@ FIELDS: tuple[FieldSpec, ...] = (
         help_text="The upper limit must stay at least this far above the lower limit.",
     ),
     FieldSpec(
-        key="rearm_gap",
-        label="Re-arm gap",
-        kind="int",
-        default=5,
-        minimum=1,
-        maximum=50,
-        suffix="%",
-        help_text=(
-            "Hysteresis. After a warning fires it stays quiet until the battery "
-            "moves back this far, which prevents nagging."
-        ),
-    ),
-    FieldSpec(
         key="snooze_minutes",
         label="Snooze duration",
         kind="int",
@@ -143,7 +130,9 @@ FIELDS: tuple[FieldSpec, ...] = (
         suffix=" s",
         help_text=(
             "Seconds before the warning popup closes itself. 0 means no timeout "
-            "(stays until you dismiss it). You can set this back to 0 at any time."
+            "(stays until you dismiss it). After a warning shows, plugging in "
+            "auto-dismisses a plug-in warning and unplugging auto-dismisses an "
+            "unplug warning. You can set this back to 0 at any time."
         ),
     ),
     FieldSpec(
@@ -172,6 +161,16 @@ FIELDS: tuple[FieldSpec, ...] = (
         ),
     ),
     FieldSpec(
+        key="sound_enabled",
+        label="Play warning tone",
+        kind="bool",
+        default=True,
+        help_text=(
+            "Loop a tone while the warning popup is on screen. The tone stops "
+            "as soon as the popup disappears."
+        ),
+    ),
+    FieldSpec(
         key="theme",
         label="Theme",
         kind="choice",
@@ -194,24 +193,14 @@ class AppConfig:
     upper_limit: int = 80
     lower_limit: int = 20
     minimum_gap: int = 10
-    rearm_gap: int = 5
     snooze_minutes: int = 15
     poll_interval_seconds: int = 60
     popup_timeout_seconds: int = 0
     monitoring_enabled: bool = True
     launch_at_startup: bool = True
     notification_mode: NotificationMode = "popup"
+    sound_enabled: bool = True
     theme: ThemePreference = "system"
-
-    @property
-    def upper_rearm_point(self) -> int:
-        """Charge level the battery must fall below before the upper warning re-arms."""
-        return self.upper_limit - self.rearm_gap
-
-    @property
-    def lower_rearm_point(self) -> int:
-        """Charge level the battery must rise above before the lower warning re-arms."""
-        return self.lower_limit + self.rearm_gap
 
     @property
     def poll_interval_ms(self) -> int:

@@ -17,8 +17,9 @@ administrator rights and makes no network calls.
   (*"Unplug the charger"*) and when it drops to the **lower limit** on battery
   power (*"Plug in the charger"*).
 - Warns **once per crossing**, not once per poll. After a warning the channel
-  stays quiet until the battery moves back past a re-arm point, which prevents
-  nagging while still catching a genuine second crossing.
+  stays quiet until you leave the limit (charge drops below the upper limit or
+  the charger is unplugged; charge rises above the lower limit or the charger
+  is plugged in).
 - Lets you snooze a warning for a configurable number of minutes.
 - Lives in the tray with a live status line, a pause switch and a settings
   dialog. Everything applies immediately - there is no restart and no OK button.
@@ -31,15 +32,17 @@ administrator rights and makes no network calls.
 | Upper limit     | 80 %    | Warn to unplug once the battery reaches this level while charging |
 | Lower limit     | 20 %    | Warn to plug in once the battery falls to this level on battery   |
 | Minimum gap     | 10 %    | Upper limit must stay at least this far above the lower limit     |
-| Re-arm gap      | 5 %     | Hysteresis: how far the battery must move back before a channel can warn again |
 | Snooze duration | 15 min  | How long the Snooze button suppresses the current warning         |
 | Poll interval   | 60 s    | How often the battery is sampled, on a background thread          |
 | Monitoring      | on      | Pause or resume all monitoring                                    |
 | Launch at login | on      | Start automatically when you sign in                              |
 | Notify via      | popup   | Popup window, or a tray notification only (one channel, never both) |
+| Play warning tone | on    | Loop a tone while the warning popup is visible; it stops when the popup closes |
 
-With the defaults, the upper channel warns at 80 % and only re-arms below 75 %;
-the lower channel warns at 20 % and only re-arms above 25 %.
+With the defaults, the upper channel warns at 80 % while plugged in and is
+ready again as soon as charge is below 80 % or the charger is unplugged; the
+lower channel warns at 20 % on battery and is ready again as soon as charge
+is above 20 % or the charger is plugged in.
 
 ---
 
@@ -105,6 +108,9 @@ the charge level, a gauge marked with your limits, and three buttons: *Snooze*,
 activating, so it will not pull focus away from a fullscreen application. A
 second warning updates the same window rather than stacking a new one. Settings
 **Notify via** chooses either this popup or a tray balloon, never both.
+When **Play warning tone** is on, a looping chime plays for as long as the
+popup is on screen and stops as soon as it disappears (Dismiss, Snooze, Esc,
+timeout, or plugging/unplugging the charger).
 
 ---
 

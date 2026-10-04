@@ -62,7 +62,6 @@ LEFT_KEYS = (
     "upper_limit",
     "lower_limit",
     "minimum_gap",
-    "rearm_gap",
     "snooze_minutes",
     "poll_interval_seconds",
 )
@@ -71,6 +70,7 @@ RIGHT_KEYS = (
     "monitoring_enabled",
     "launch_at_startup",
     "notification_mode",
+    "sound_enabled",
     "theme",
 )
 

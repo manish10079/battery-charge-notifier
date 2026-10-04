@@ -22,7 +22,7 @@ def make_state(percent: int, plugged: bool, present: bool = True) -> BatteryStat
 
 
 #: A low upper limit that still satisfies the cross-field validation rule.
-LOW_UPPER_CONFIG = AppConfig(upper_limit=3, lower_limit=1, minimum_gap=1, rearm_gap=1)
+LOW_UPPER_CONFIG = AppConfig(upper_limit=3, lower_limit=1, minimum_gap=1)
 
 
 @pytest.fixture
@@ -147,7 +147,7 @@ class TestLiveConfig:
         worker.poll_once()
         assert warnings == []
 
-        worker.apply_config(AppConfig(upper_limit=40, lower_limit=20, rearm_gap=5))
+        worker.apply_config(AppConfig(upper_limit=40, lower_limit=20))
         worker.poll_once()
         assert len(warnings) == 1
 

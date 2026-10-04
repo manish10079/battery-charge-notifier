@@ -14,6 +14,7 @@ import time
 from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import QSystemTrayIcon
 
+from .alert_tone import AlertTone
 from .app_config import AppConfig
 from .battery_service import BatteryState
 from .monitor import WarningEvent, WarningKind
@@ -60,6 +61,7 @@ class Notifier(QObject):
         self._viewmodel.snoozeRequested.connect(self._on_snooze)
         self._viewmodel.settingsRequested.connect(self.settingsRequested)
         self._viewmodel.dismissed.connect(self._on_dismissed)
+        self._tone = AlertTone(self)
 
     # -- accessors ---------------------------------------------------------
     @property
@@ -87,6 +89,10 @@ class Notifier(QObject):
         self._viewmodel.apply_config(config)
         if self.is_popup_visible():
             self._arm_popup_timeout()
+            if config.sound_enabled:
+                self._tone.start()
+            else:
+                self._tone.stop()
 
     def restyle(self) -> None:
         """Repaint an open popup after the theme tokens change."""
@@ -165,6 +171,7 @@ class Notifier(QObject):
     def dismiss(self) -> None:
         """Slide the popup out, then hide it."""
         self._auto_close.stop()
+        self._tone.stop()
         if self._window is not None:
             self._window.slide_out_and_hide()
 
@@ -180,6 +187,10 @@ class Notifier(QObject):
                 self._window.apply_content(current)
         self._window.show_at_bottom_right()
         self._arm_popup_timeout()
+        if self._config.sound_enabled:
+            self._tone.start()
+        else:
+            self._tone.stop()
 
     def _arm_popup_timeout(self) -> None:
         """Start or cancel the auto-close timer from the current setting.

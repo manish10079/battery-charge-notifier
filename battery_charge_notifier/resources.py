@@ -32,6 +32,9 @@ TRAY_PAUSED = "tray_paused.png"
 ARROW_UP = "arrow_up.png"
 ARROW_DOWN = "arrow_down.png"
 
+#: Looping MP3 played while a warning popup is visible.
+ALERT_TONE = "alert.mp3"
+
 _assets_cache: Path | None = None
 
 
@@ -129,6 +132,7 @@ def action_icon_name(action: str) -> str:
 __all__ = [
     "APP_ICON",
     "APP_ICON_PNG",
+    "ALERT_TONE",
     "ARROW_DOWN",
     "ARROW_UP",
     "TRAY_OK",

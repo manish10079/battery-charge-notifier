@@ -13,7 +13,7 @@ defined in exactly one place. Bump **major** for incompatible changes,
 
 from __future__ import annotations
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 _parts = tuple(int(part) for part in __version__.split("."))
 VERSION_INFO: tuple[int, int, int] = (_parts[0], _parts[1], _parts[2])

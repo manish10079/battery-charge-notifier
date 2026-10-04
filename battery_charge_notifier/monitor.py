@@ -19,8 +19,10 @@ trivially testable:
     connections so that the state machine is only ever touched by one thread.
 
 Warnings are *latched*: once a warning fires the corresponding channel stays
-quiet until the battery has moved back past its re-arm point. This is what
-stops the application from nagging on every poll tick.
+quiet until the condition is no longer true (charge drops below the upper
+limit or the charger is unplugged; charge rises above the lower limit or the
+charger is plugged in). That stops nagging on every poll tick without a
+separate re-arm gap.
 """
 
 from __future__ import annotations
@@ -53,7 +55,7 @@ class ChannelPhase(StrEnum):
 
     Attributes:
         ARMED: Ready to fire as soon as the warning is actionable.
-        QUIET: A warning has fired; latched until the re-arm point is crossed.
+        QUIET: A warning has fired; latched until the limit is no longer met.
         SNOOZED: The user asked to be left alone; suppressed until the deadline.
     """
 
@@ -68,7 +70,6 @@ class Thresholds:
 
     upper_limit: int = 80
     lower_limit: int = 20
-    rearm_gap: int = 5
     snooze_seconds: int = 900
 
     @classmethod
@@ -77,19 +78,8 @@ class Thresholds:
         return cls(
             upper_limit=config.upper_limit,
             lower_limit=config.lower_limit,
-            rearm_gap=config.rearm_gap,
             snooze_seconds=config.snooze_seconds,
         )
-
-    @property
-    def upper_rearm_point(self) -> int:
-        """The charge level the battery must fall *below* to re-arm the upper warning."""
-        return self.upper_limit - self.rearm_gap
-
-    @property
-    def lower_rearm_point(self) -> int:
-        """The charge level the battery must rise *above* to re-arm the lower warning."""
-        return self.lower_limit + self.rearm_gap
 
 
 @dataclass(frozen=True)
@@ -162,14 +152,24 @@ class WarningStateMachine:
     def apply_thresholds(self, thresholds: Thresholds) -> None:
         """Adopt new thresholds.
 
-        The latched phases are deliberately preserved: changing a limit in the
-        settings dialog applies live and must not re-fire a warning the user has
-        already acknowledged.
+        Changing a limit re-arms that channel so the next observation can warn
+        again. Other settings leave latched phases alone.
 
         Args:
             thresholds: The new thresholds.
         """
+        old = self._thresholds
         self._thresholds = thresholds
+        if old.upper_limit != thresholds.upper_limit:
+            self._rearm_channel(WarningKind.UPPER)
+        if old.lower_limit != thresholds.lower_limit:
+            self._rearm_channel(WarningKind.LOWER)
+
+    def _rearm_channel(self, kind: WarningKind) -> None:
+        """Clear snooze and make *kind* ready to fire again."""
+        channel = self._channels[kind]
+        channel.phase = ChannelPhase.ARMED
+        channel.snooze_until = None
 
     def phase(self, kind: WarningKind) -> ChannelPhase:
         """Return the current phase of *kind*."""
@@ -225,18 +225,20 @@ class WarningStateMachine:
         # skipped; the upper channel is reported first, though the two are
         # mutually exclusive by construction (one needs the charger plugged in,
         # the other needs it unplugged).
+        upper_actionable = state.plugged and state.percent >= limits.upper_limit
+        lower_actionable = (not state.plugged) and state.percent <= limits.lower_limit
         upper = self._step(
             kind=WarningKind.UPPER,
             now=moment,
-            actionable=state.plugged and state.percent >= limits.upper_limit,
-            rearmed=state.percent < limits.upper_rearm_point,
+            actionable=upper_actionable,
+            rearmed=not upper_actionable,
             percent=state.percent,
         )
         lower = self._step(
             kind=WarningKind.LOWER,
             now=moment,
-            actionable=(not state.plugged) and state.percent <= limits.lower_limit,
-            rearmed=state.percent > limits.lower_rearm_point,
+            actionable=lower_actionable,
+            rearmed=not lower_actionable,
             percent=state.percent,
         )
         return upper or lower
@@ -366,7 +368,7 @@ class BatteryPollWorker(QObject):
                 self._timer.setInterval(config.poll_interval_ms)
             if not self._timer.isActive():
                 self._timer.start()
-                self.poll_once()
+            self.poll_once()
         else:
             self._timer.stop()
 

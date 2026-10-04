@@ -154,6 +154,7 @@ class TestBundledAssets:
             resources.TRAY_PAUSED,
             resources.ARROW_UP,
             resources.ARROW_DOWN,
+            resources.ALERT_TONE,
         ],
     )
     def test_asset_is_present_and_loadable(self, name: str) -> None:

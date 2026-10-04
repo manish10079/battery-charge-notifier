@@ -30,19 +30,14 @@ def make_state(percent: int, plugged: bool, present: bool = True) -> BatteryStat
 
 @pytest.fixture
 def machine() -> WarningStateMachine:
-    """A machine with the documented defaults: upper 80, lower 20, gap 5."""
-    return WarningStateMachine(Thresholds(upper_limit=80, lower_limit=20, rearm_gap=5))
+    """A machine with the documented defaults: upper 80, lower 20."""
+    return WarningStateMachine(Thresholds(upper_limit=80, lower_limit=20))
 
 
 # ---------------------------------------------------------------------------
 # Thresholds
 # ---------------------------------------------------------------------------
 class TestThresholds:
-    def test_rearm_points_are_derived_from_the_gap(self) -> None:
-        limits = Thresholds(upper_limit=80, lower_limit=20, rearm_gap=5)
-        assert limits.upper_rearm_point == 75
-        assert limits.lower_rearm_point == 25
-
     def test_thresholds_come_from_config(self, default_config) -> None:
         limits = Thresholds.from_config(default_config)
         assert limits.upper_limit == 80
@@ -83,23 +78,19 @@ class TestUpperWarning:
         for tick in range(1, 20):
             assert machine.update(make_state(85, plugged=True), now=float(tick)) is None
 
-    def test_stays_latched_at_the_rearm_boundary(self, machine: WarningStateMachine) -> None:
+    def test_rearms_as_soon_as_charge_drops_below_the_limit(
+        self, machine: WarningStateMachine
+    ) -> None:
         machine.update(make_state(85, plugged=True), now=0.0)
-        # 75 == upper - gap, which is NOT below the re-arm point.
-        assert machine.update(make_state(75, plugged=True), now=1.0) is None
-        assert machine.phase(WarningKind.UPPER) is ChannelPhase.QUIET
-
-    def test_rearms_below_the_rearm_point(self, machine: WarningStateMachine) -> None:
-        machine.update(make_state(85, plugged=True), now=0.0)
-        assert machine.update(make_state(74, plugged=True), now=1.0) is None
+        assert machine.update(make_state(79, plugged=True), now=1.0) is None
         assert machine.phase(WarningKind.UPPER) is ChannelPhase.ARMED
 
-    def test_refires_after_rearming(self, machine: WarningStateMachine) -> None:
+    def test_refires_after_dropping_below_the_limit(self, machine: WarningStateMachine) -> None:
         machine.update(make_state(85, plugged=True), now=0.0)
-        machine.update(make_state(74, plugged=True), now=1.0)
-        event = machine.update(make_state(86, plugged=True), now=2.0)
+        machine.update(make_state(79, plugged=True), now=1.0)
+        event = machine.update(make_state(80, plugged=True), now=2.0)
         assert event is not None
-        assert event.percent == 86
+        assert event.percent == 80
 
     def test_rearms_when_unplugged_then_refires_on_replug(
         self, machine: WarningStateMachine
@@ -136,25 +127,22 @@ class TestLowerWarning:
             assert machine.update(make_state(15, plugged=False), now=float(tick)) is None
         assert machine.phase(WarningKind.LOWER) is ChannelPhase.QUIET
 
-    def test_stays_latched_at_the_rearm_boundary(self, machine: WarningStateMachine) -> None:
-        machine.update(make_state(15, plugged=False), now=0.0)
-        # 25 == lower + gap, which is NOT above the re-arm point.
-        machine.update(make_state(25, plugged=False), now=1.0)
-        assert machine.phase(WarningKind.LOWER) is ChannelPhase.QUIET
-
-    def test_rearms_above_the_rearm_point(self, machine: WarningStateMachine) -> None:
-        machine.update(make_state(15, plugged=False), now=0.0)
-        machine.update(make_state(26, plugged=False), now=1.0)
-        assert machine.phase(WarningKind.LOWER) is ChannelPhase.ARMED
-
-    def test_does_not_refire_merely_because_it_was_replugged(
+    def test_rearms_as_soon_as_charge_rises_above_the_limit(
         self, machine: WarningStateMachine
     ) -> None:
-        """Plugging in silences the warning but does not re-arm it."""
+        machine.update(make_state(15, plugged=False), now=0.0)
+        machine.update(make_state(21, plugged=False), now=1.0)
+        assert machine.phase(WarningKind.LOWER) is ChannelPhase.ARMED
+
+    def test_unplugging_again_while_still_low_warns_again(
+        self, machine: WarningStateMachine
+    ) -> None:
         machine.update(make_state(15, plugged=False), now=0.0)
         machine.update(make_state(16, plugged=True), now=1.0)
-        assert machine.phase(WarningKind.LOWER) is ChannelPhase.QUIET
-        assert machine.update(make_state(16, plugged=False), now=2.0) is None
+        assert machine.phase(WarningKind.LOWER) is ChannelPhase.ARMED
+        event = machine.update(make_state(16, plugged=False), now=2.0)
+        assert event is not None
+        assert event.kind is WarningKind.LOWER
 
     def test_refires_after_a_full_charge_cycle(self, machine: WarningStateMachine) -> None:
         machine.update(make_state(15, plugged=False), now=0.0)
@@ -239,19 +227,32 @@ class TestGeneralBehaviour:
         assert machine.update(make_state(85, plugged=True), now=0.0) is not None
         assert machine.update(make_state(85, plugged=True), now=1.0) is None
 
-    def test_applying_thresholds_does_not_re_fire_a_latched_warning(
+    def test_lowering_the_upper_limit_rearms_and_can_warn_again(
+        self, machine: WarningStateMachine
+    ) -> None:
+        assert machine.update(make_state(85, plugged=True), now=0.0) is not None
+        machine.apply_thresholds(Thresholds(upper_limit=60, lower_limit=20))
+        event = machine.update(make_state(85, plugged=True), now=1.0)
+        assert event is not None
+        assert event.kind is WarningKind.UPPER
+        assert event.percent == 85
+
+    def test_raising_the_upper_limit_waits_for_the_new_crossing(
         self, machine: WarningStateMachine
     ) -> None:
         machine.update(make_state(85, plugged=True), now=0.0)
-        machine.apply_thresholds(Thresholds(upper_limit=60, lower_limit=20, rearm_gap=5))
+        machine.apply_thresholds(Thresholds(upper_limit=90, lower_limit=20))
+        assert machine.phase(WarningKind.UPPER) is ChannelPhase.ARMED
         assert machine.update(make_state(85, plugged=True), now=1.0) is None
+        assert machine.update(make_state(95, plugged=True), now=2.0) is not None
 
-    def test_new_threshold_applies_to_the_next_cycle(self, machine: WarningStateMachine) -> None:
+    def test_unrelated_threshold_changes_do_not_rearm_the_other_channel(
+        self, machine: WarningStateMachine
+    ) -> None:
         machine.update(make_state(85, plugged=True), now=0.0)
-        machine.apply_thresholds(Thresholds(upper_limit=90, lower_limit=20, rearm_gap=5))
-        machine.update(make_state(50, plugged=True), now=1.0)  # re-arms
-        assert machine.update(make_state(85, plugged=True), now=2.0) is None
-        assert machine.update(make_state(95, plugged=True), now=3.0) is not None
+        machine.apply_thresholds(Thresholds(upper_limit=80, lower_limit=15))
+        assert machine.phase(WarningKind.UPPER) is ChannelPhase.QUIET
+        assert machine.update(make_state(85, plugged=True), now=1.0) is None
 
     def test_full_charge_then_drain_cycle(self, machine: WarningStateMachine) -> None:
         """A realistic scripted session warns on each crossing, and only once."""

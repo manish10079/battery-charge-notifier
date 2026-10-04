@@ -101,7 +101,6 @@ class TestUpperWarningAcceptance:
             upper_limit=3,
             lower_limit=1,
             minimum_gap=1,
-            rearm_gap=1,
         )
 
         warnings: list = []
@@ -227,6 +226,7 @@ class TestLiveConfiguration:
         controller.open_settings()
         assert first is not None
         assert controller.settings_dialog is first
+        assert "sound_enabled" in first._editors  # noqa: SLF001
         first.close()
 
 

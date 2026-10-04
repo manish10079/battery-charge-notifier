@@ -34,7 +34,6 @@ class TestDefaults:
         config = AppConfig()
         assert config.upper_limit == 80
         assert config.lower_limit == 20
-        assert config.rearm_gap == 5
         assert config.minimum_gap == 10
         assert config.snooze_minutes == 15
         assert config.poll_interval_seconds == 60
@@ -42,6 +41,7 @@ class TestDefaults:
         assert config.monitoring_enabled is True
         assert config.launch_at_startup is True
         assert config.notification_mode == "popup"
+        assert config.sound_enabled is True
         assert config.theme == "system"
 
     def test_every_schema_field_exists_on_the_config(self) -> None:
@@ -49,9 +49,7 @@ class TestDefaults:
             assert hasattr(AppConfig(), spec.key), spec.key
 
     def test_derived_values(self) -> None:
-        config = AppConfig(upper_limit=80, lower_limit=20, rearm_gap=5, snooze_minutes=15)
-        assert config.upper_rearm_point == 75
-        assert config.lower_rearm_point == 25
+        config = AppConfig(upper_limit=80, lower_limit=20, snooze_minutes=15)
         assert config.poll_interval_ms == 60_000
         assert config.snooze_seconds == 900
 
@@ -167,7 +165,7 @@ class TestPersistence:
         assert not manager.path.exists()
 
     def test_save_then_load_roundtrip(self, manager: ConfigManager) -> None:
-        saved = AppConfig(upper_limit=70, lower_limit=30, rearm_gap=8, snooze_minutes=5)
+        saved = AppConfig(upper_limit=70, lower_limit=30, snooze_minutes=5)
         manager.save(saved)
         assert manager.load() == saved
 
