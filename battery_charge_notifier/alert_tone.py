@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 
 from PySide6.QtCore import QObject, QUrl
-from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
+from PySide6.QtMultimedia import QAudioOutput, QMediaDevices, QMediaPlayer
 
 from . import resources
 
@@ -26,23 +26,42 @@ class AlertTone(QObject):
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._player: QMediaPlayer | None = None
+        self._audio: QAudioOutput | None = None
         path = resources.asset_path(ALERT_TONE)
         if not path.is_file():
             logger.warning("Alert tone asset is missing (looked in %s)", path.parent)
             return
         audio = QAudioOutput(self)
-        audio.setVolume(0.55)
+        audio.setVolume(1.0)
         player = QMediaPlayer(self)
         player.setAudioOutput(audio)
         player.setSource(QUrl.fromLocalFile(str(path)))
         player.setLoops(-1)
+        self._audio = audio
         self._player = player
+
+    def _bind_current_output(self) -> None:
+        """Point WASAPI at the live default device (speakers vs headphones).
+
+        Qt keeps the device chosen when :class:`QAudioOutput` was created. After
+        a jack/Bluetooth change that endpoint is often gone, so playback reports
+        Playing but nothing is heard on the laptop speakers.
+        """
+        audio = self._audio
+        if audio is None:
+            return
+        device = QMediaDevices.defaultAudioOutput()
+        if not device.isNull() and audio.device() != device:
+            audio.setDevice(device)
+        audio.setMuted(False)
+        audio.setVolume(1.0)
 
     def start(self) -> None:
         """Begin looping playback if the player loaded."""
         player = self._player
         if player is None:
             return
+        self._bind_current_output()
         if player.error() != QMediaPlayer.Error.NoError:
             logger.warning("Alert tone could not be loaded: %s", player.errorString())
             return
