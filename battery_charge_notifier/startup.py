@@ -34,11 +34,22 @@ def _launch_command() -> str:
     Uses the interpreter and the module path rather than the ``battery_charge_notifier``
     console script, which is not guaranteed to be on ``PATH`` in every
     environment (notably a virtual environment launched from the desktop).
+
+    On Windows the windowless ``pythonw.exe`` is preferred when it sits beside
+    the running interpreter, so signing in never flashes a console window. The
+    result is canonical: the same checkout always produces the same command, so
+    a stored autostart value can be compared against it.
     """
     if getattr(sys, "frozen", False):
         # A PyInstaller build is its own executable.
         return f'"{sys.executable}"'
-    return f'"{sys.executable}" -m battery_charge_notifier'
+
+    interpreter = sys.executable
+    if sys.platform.startswith("win") and interpreter:
+        windowless = Path(interpreter).with_name("pythonw.exe")
+        if windowless.is_file():
+            interpreter = str(windowless)
+    return f'"{interpreter}" -m battery_charge_notifier'
 
 
 @runtime_checkable
@@ -91,7 +102,12 @@ class WindowsStartupService:
         self._value_name = value_name
 
     def is_enabled(self) -> bool:
-        """Return whether the ``Run`` value exists."""
+        """Return whether the ``Run`` value points at this installation.
+
+        A value that exists but launches a different executable (an older copy
+        or a moved checkout) would fail silently at sign-in, so it counts as
+        disabled and is replaced on the next reconcile.
+        """
         import winreg
 
         try:
@@ -102,7 +118,8 @@ class WindowsStartupService:
         except OSError:
             logger.warning("Could not read the Run registry key", exc_info=True)
             return False
-        return bool(str(value).strip())
+        stored = str(value).strip()
+        return os.path.normcase(stored) == os.path.normcase(_launch_command())
 
     def set_enabled(self, enabled: bool) -> bool:
         """Create or delete the ``Run`` value, then verify the result."""

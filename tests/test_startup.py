@@ -99,8 +99,29 @@ class TestWindowsStartupService:
     def test_command_invokes_the_module(self, fake_winreg: FakeWinreg) -> None:
         WindowsStartupService().set_enabled(True)
         command = fake_winreg.values[(RUN_KEY, startup.WINDOWS_VALUE_NAME)]
-        assert "battery_charge_notifier" in command
-        assert sys.executable in command
+        assert "-m battery_charge_notifier" in command
+        assert command.startswith('"')
+
+    def test_windowless_interpreter_is_preferred(self, tmp_path: Path, monkeypatch) -> None:
+        python = tmp_path / "python.exe"
+        python.write_text("")
+        (tmp_path / "pythonw.exe").write_text("")
+        monkeypatch.setattr(sys, "executable", str(python))
+        monkeypatch.setattr(sys, "platform", "win32")
+
+        command = startup._launch_command()
+
+        assert str(tmp_path / "pythonw.exe") in command
+        assert "-m battery_charge_notifier" in command
+
+    def test_stale_command_is_treated_as_disabled(self, fake_winreg: FakeWinreg) -> None:
+        service = WindowsStartupService()
+        assert service.set_enabled(True) is True
+        fake_winreg.values[(RUN_KEY, startup.WINDOWS_VALUE_NAME)] = '"C:\\old\\BatteryChargeNotifier.exe"'
+
+        assert service.is_enabled() is False
+        assert service.set_enabled(True) is True
+        assert fake_winreg.values[(RUN_KEY, startup.WINDOWS_VALUE_NAME)] == startup._launch_command()
 
     def test_disabling_removes_the_value(self, fake_winreg: FakeWinreg) -> None:
         service = WindowsStartupService()
